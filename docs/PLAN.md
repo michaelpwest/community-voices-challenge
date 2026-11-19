@@ -38,12 +38,12 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## Milestone 1 — Minimal foundation
 
-- [ ] Initialize TypeScript workspace, API, responsive web UI, lint/test tooling.
-- [ ] Add `.env.example` for URLs, model names, DB configuration, and source configuration.
-- [ ] Implement `npm start` launcher: detect Ollama, validate prerequisites, start API on `:3001` and web on `:3000`.
-- [ ] Support a configured Ollama URL; offer guided setup rather than silently installing software.
-- [ ] Add launcher actions: refresh feed, clear data **with confirmation**, system status, graceful exit.
-- [ ] Ensure API and web can also start independently for testing/automation.
+- [x] Initialize TypeScript workspace, API, responsive web UI, lint/test tooling.
+- [x] Add `.env.example` for URLs, model names, DB configuration, and source configuration.
+- [x] Implement `npm start` launcher: detect Ollama, validate prerequisites, start API on `:3001` and web on `:3000`.
+- [x] Support a configured Ollama URL; offer guided setup rather than silently installing software.
+- [ ] Add launcher actions: refresh feed, clear data **with confirmation**, system status, graceful exit. _Implemented and unit-tested; the menu and Ctrl+C still need a manual check in a real terminal. Refresh feed reports "not implemented" until Milestone 2._
+- [x] Ensure API and web can also start independently for testing/automation.
 
 **Done when:** a fresh clone can start the UI/API after documented prerequisites, and the launcher handles Ctrl+C without killing pre-existing Ollama services.
 

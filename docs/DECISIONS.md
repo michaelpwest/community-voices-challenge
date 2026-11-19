@@ -93,3 +93,27 @@ Record meaningful decisions briefly, with the alternatives, rationale, and trade
 **Why:** The Lemmy API can fetch a full week on demand (D-005), so polling isn't needed to build up history. A scheduler would add process lifecycle and failure handling with no MVP benefit. The challenge requires automated ingestion, which a single refresh action satisfies; it doesn't require an always-on scheduler.
 
 **Trade-off:** Data is only as fresh as the last manual refresh; the UI must show the last ingestion time. Scheduling stays on the deferred list.
+
+## D-009 — Application tooling (proposed)
+
+Chosen while building Milestone 1; confirm or change.
+
+**Choice:**
+- One npm package (no workspaces): server code in `src/`, web UI in `web/`.
+- API: Hono on `@hono/node-server`.
+- Web UI: React with the Vite dev server, which proxies `/api` to the API.
+- SQLite driver: Node's built-in `node:sqlite`, loading the sqlite-vec extension.
+- TypeScript is run directly with `tsx`; there is no build step.
+- Tests: Vitest. Lint: ESLint with typescript-eslint. Validation: zod.
+
+**Alternatives:**
+- Express or Fastify for the API: more familiar to some reviewers, but heavier, and Hono routes can be tested without opening a port.
+- `better-sqlite3`: the most common driver, but it is a native module that needs a prebuilt binary or a compiler for the reviewer's Node version.
+- Building the web UI and serving static files from the API: one process fewer, but adds a build step before the demo.
+
+**Why:** Fewest moving parts for a reviewer: one `npm install`, no compile step, and no native module besides sqlite-vec's prebuilt extension.
+
+**Trade-off:**
+- Requires Node.js 22.13 or newer for `node:sqlite` extension loading; the launcher checks this.
+- The demo runs on the Vite dev server, which is fine locally but is not a production setup.
+- Loading sqlite-vec through `node:sqlite` is verified on Windows x64 with Node 26 only; macOS and Linux are untested.

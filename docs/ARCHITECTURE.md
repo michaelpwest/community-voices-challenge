@@ -84,11 +84,12 @@ Use the **same model**, report period, instruction template, and temperature/set
 
 ## Local process model
 
-- Web: `localhost:3000`
-- API: `localhost:3001`
+- Web: `localhost:3000` (Vite dev server; forwards `/api` requests to the API) (D-009)
+- API: `localhost:3001` (Hono; listens on the loopback interface only)
 - Ollama: configurable URL, default `http://localhost:11434`; models `llama3.1:8b` (generation, explicit `num_ctx`) and `nomic-embed-text` (embeddings, with `search_document:`/`search_query:` prefixes) per D-007
 - Database: local SQLite file with the sqlite-vec extension; no separate server
 - `npm start` orchestrates checks and starts only the processes it owns; the CLI can trigger ingestion and graceful exit.
+- The launcher asks its child processes to stop over a Node IPC channel. The API and web processes also stop on their own if the launcher disappears, so a killed launcher does not leave them running.
 
 ## Known risks
 

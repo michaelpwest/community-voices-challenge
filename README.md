@@ -2,7 +2,7 @@
 
 A local-first demonstration of Retrieval-Augmented Generation (RAG) for weekly community reporting.
 
-> **Status:** Planning / initial implementation. This README describes the intended workflow and is subject to change and verification before submission.
+> **Status:** Milestone 1 (foundation) is in place: the launcher, API, and web UI start and report setup status. Feed ingestion, embeddings, and reports are not implemented yet.
 
 ## Challenge
 
@@ -18,26 +18,38 @@ The challenge allows any frontend/backend tools and suggests keeping the effort 
 - Two reports from the **same local LLM**, using the same prompt and generation settings: baseline without retrieval and RAG with retrieved evidence.
 - A responsive web UI showing summaries, predictions, source references, and a side-by-side comparison.
 
-## Proposed stack (subject to validation)
+## Stack
 
-- TypeScript / Node.js API
-- Responsive React-based web UI (mobile-friendly; native mobile app is out of scope for MVP)
+- TypeScript on Node.js 22.13 or newer; API built with Hono
+- Responsive React web UI served by Vite (mobile-friendly; native mobile app is out of scope for MVP)
 - Ollama for local text generation (`llama3.1:8b`) and embeddings (`nomic-embed-text`), both configurable
-- SQLite + sqlite-vec for lightweight local storage and vector similarity search, with no separate database server required
+- SQLite (Node's built-in `node:sqlite`) + sqlite-vec for local storage and vector similarity search, with no separate database server required
 - A single root `npm start` launcher for local development/demo
 
 ## Getting started
 
-_Not implemented yet. These are the intended reviewer steps._
+So far these steps have been run on Windows 11 with Node.js 26 only.
 
-1. Install Node.js.
-2. Install/start Ollama, or provide the URL of an existing Ollama server, then pull the models: `ollama pull llama3.1:8b` and `ollama pull nomic-embed-text`.
+1. Install Node.js 22.13 or newer.
+2. Install and start [Ollama](https://ollama.com/download), then pull the models: `ollama pull llama3.1:8b` and `ollama pull nomic-embed-text`. To use an Ollama server on another machine, set `OLLAMA_URL` in `.env` instead.
 3. Clone the repository and run `npm install`.
-4. Copy `.env.example` to `.env` and configure as needed (never commit `.env`).
-5. Run `npm start` to launch the web UI (planned `http://localhost:3000`) and API (planned `http://localhost:3001`).
-6. Ingest live community discussions (requires internet access), generate the baseline and RAG reports, and compare them.
+4. Optional: copy `.env.example` to `.env` to change ports, models, or URLs (never commit `.env`). Defaults are used when `.env` is absent.
+5. Run `npm start`. The launcher checks Ollama and the models, then starts the API on `http://localhost:3001` and the web UI on `http://localhost:3000`.
+6. Open `http://localhost:3000` to see setup status. Ingestion and reports are not implemented yet.
 
-**Reviewer requirement:** Before submission, replace this section with exact, fully tested instructions including model download commands, database initialization, ports, ingestion instructions, and troubleshooting.
+The launcher never installs software. If Ollama is not running or a model is missing, it explains what to do and asks before starting Ollama or downloading a model. Its menu offers feed refresh, system status, clearing local data (after typing `DELETE`), and quit. On exit it stops only the processes it started; an Ollama server that was already running is left alone.
+
+### Other commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run api` | Start only the API |
+| `npm run web` | Start only the web UI |
+| `npm test` | Run the tests (no Ollama or internet needed) |
+| `npm run lint` | Lint the code |
+| `npm run typecheck` | Type-check the server and web code |
+
+**Reviewer requirement:** Before submission, complete this section with ingestion and report instructions and troubleshooting, and re-test it from a clean clone.
 
 ## What to examine
 
