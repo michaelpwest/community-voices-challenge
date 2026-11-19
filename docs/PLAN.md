@@ -49,13 +49,13 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## Milestone 2 — Data ingestion and embeddings
 
-- [ ] Define a data-source interface and implement it for Lemmy `games` on lemmy.world (D-005).
-- [ ] Fetch the past week's posts and their comments with pagination, rate limiting, a descriptive user-agent, and error handling.
-- [ ] Select comments to keep within context limits (e.g. top-scored per post) and document the rule.
-- [ ] Normalize text, timestamps, canonical URLs, and stable IDs; deduplicate/upsert.
-- [ ] Add a small labeled offline fixture in the Lemmy response shape for tests (D-004); never load it into the app database.
-- [ ] Chunk only if needed, compute embeddings through Ollama, and store them.
-- [ ] Implement semantic top-k retrieval with a seven-day window and source metadata.
+- [x] Define a data-source interface and implement it for Lemmy `games` on lemmy.world (D-005).
+- [x] Fetch the past week's posts and their comments with pagination, rate limiting, a descriptive user-agent, and error handling.
+- [x] Select comments to keep within context limits (e.g. top-scored per post) and document the rule. _Top 10 by score per post, configurable (D-010)._
+- [x] Normalize text, timestamps, canonical URLs, and stable IDs; deduplicate/upsert.
+- [x] Add a small labeled offline fixture in the Lemmy response shape for tests (D-004); never load it into the app database.
+- [x] Chunk only if needed, compute embeddings through Ollama, and store them. _No chunking needed; one embedding per post or comment (D-010)._
+- [x] Implement semantic top-k retrieval with a seven-day window and source metadata.
 
 **Done when:** a repeat ingestion does not duplicate records and relevant posts can be retrieved with usable source links.
 
@@ -113,4 +113,3 @@ Build the smallest useful local-first application that ingests recent discussion
 - How should long discussions be selected or summarized within context limits?
 - Does `llama3.1:8b` produce good enough reports, or should we switch to `qwen3:8b` (D-007)?
 - Which exact comparison criteria are easiest for a reviewer to see?
-- Should the test fixture be hand-written or a trimmed capture of real posts (which would redistribute user content)?

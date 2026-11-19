@@ -4,6 +4,7 @@ import { createInterface as createLineReader } from 'node:readline';
 import { createInterface, type Interface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { ConfigError, loadConfig, loadEnvFile, type AppConfig } from '../config/config';
+import type { IngestSummary } from '../shared/discussions';
 import type { ApiErrorResponse, HealthResponse } from '../shared/health';
 import { LOOPBACK_HOST, SHUTDOWN_MESSAGE } from '../shared/processProtocol';
 import { clearDataWithConfirmation } from './clearData';
@@ -11,7 +12,7 @@ import { ensureOllama } from './ollamaSetup';
 import { OwnedProcesses } from './ownedProcesses';
 import { terminalPalette } from './palette';
 import { selectOption, type MenuOption } from './selectMenu';
-import { formatHealth } from './statusReport';
+import { formatHealth, formatIngestSummary } from './statusReport';
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const MINIMUM_NODE: readonly [number, number] = [22, 13];
@@ -159,10 +160,10 @@ async function showStatus(config: AppConfig): Promise<void> {
 }
 
 async function refreshFeed(config: AppConfig): Promise<void> {
-  say('Requesting a feed refresh...');
+  say(`Fetching the past week of ${config.source.community} from ${config.source.instanceUrl}. This can take a minute...`);
   const response = await fetch(apiUrl(config, '/api/ingest'), { method: 'POST' });
   if (response.ok) {
-    say(paint.ok('Feed refresh finished.'));
+    formatIngestSummary((await response.json()) as IngestSummary, paint).forEach(say);
     return;
   }
   const body = (await response.json()) as Partial<ApiErrorResponse>;

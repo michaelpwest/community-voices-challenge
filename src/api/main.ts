@@ -1,17 +1,32 @@
 import { serve } from '@hono/node-server';
 import { ConfigError, loadConfig, loadEnvFile } from '../config/config';
+import { runIngestion } from '../ingestion/ingestService';
+import { createOllamaEmbedder } from '../ollama/embeddings';
 import { checkOllama } from '../ollama/ollamaStatus';
+import { retrieveDiscussions } from '../retrieval/retrieval';
 import { LOOPBACK_HOST, SHUTDOWN_MESSAGE } from '../shared/processProtocol';
-import { checkDatabase } from '../storage/database';
+import { LemmyClient } from '../sources/lemmy/lemmyClient';
+import { LemmySource } from '../sources/lemmy/lemmySource';
+import { checkDatabase, openDatabase } from '../storage/database';
+import { getDataStatus } from '../storage/discussionStore';
 import { createApp } from './app';
 
 function start(): void {
   loadEnvFile();
   const config = loadConfig();
+  const { community } = config.source;
+
+  const db = openDatabase(config.databasePath);
+  const embedder = createOllamaEmbedder(config.ollama);
+  const source = new LemmySource(new LemmyClient(config.source), config.source);
+
   const app = createApp({
     config,
     checkOllama: () => checkOllama(config.ollama),
     checkDatabase: () => checkDatabase(config.databasePath),
+    getDataStatus: () => getDataStatus(db, community, embedder.model),
+    ingest: () => runIngestion({ db, source, embedder, community }),
+    search: (query, topK) => retrieveDiscussions({ db, embedder, community }, { query, topK }),
   });
 
   const server = serve({ fetch: app.fetch, port: config.apiPort, hostname: LOOPBACK_HOST }, (info) => {
@@ -27,10 +42,15 @@ function start(): void {
     process.exit(1);
   });
 
+  const exit = (): never => {
+    // Release the database file so the launcher can delete it on "Clear data".
+    if (db.isOpen) db.close();
+    process.exit(0);
+  };
   const shutdown = (): void => {
-    server.close(() => process.exit(0));
+    server.close(exit);
     // Do not let an open keep-alive connection hold the process open.
-    setTimeout(() => process.exit(0), 2000).unref();
+    setTimeout(exit, 2000).unref();
   };
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
@@ -44,6 +64,7 @@ function start(): void {
 try {
   start();
 } catch (error) {
-  console.error(error instanceof ConfigError ? error.message : error);
+  const reason = error instanceof ConfigError || error instanceof Error ? error.message : String(error);
+  console.error(`API failed to start: ${reason}`);
   process.exit(1);
 }

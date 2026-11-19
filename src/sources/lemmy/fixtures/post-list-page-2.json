@@ -1,0 +1,110 @@
+{
+  "posts": [
+    {
+      "post": {
+        "id": 1001,
+        "name": "  [FIXTURE] Starfall Odyssey delayed to March  ",
+        "url": "https://news.fixture.invalid/starfall-odyssey-delay",
+        "body": "The studio says it needs more time for polish.\r\n\r\n\r\n\r\nPre-orders stay valid.\u200B",
+        "creator_id": 2,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-15T09:00:00.000000Z",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1001",
+        "local": true,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 2,
+        "name": "fixture_user_one",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_one",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1001, "comments": 5, "score": 120, "upvotes": 125, "downvotes": 5 }
+    },
+    {
+      "post": {
+        "id": 1004,
+        "name": "[FIXTURE] What co-op games are you playing this weekend?",
+        "body": "Looking for something two people can finish in an evening.",
+        "creator_id": 4,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-10T07:15:00.123456",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://other.fixture.invalid/post/88",
+        "local": false,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 4,
+        "name": "fixture_user_three",
+        "actor_id": "https://other.fixture.invalid/u/fixture_user_three",
+        "bot_account": false,
+        "local": false
+      },
+      "counts": { "post_id": 1004, "comments": 2, "score": 30, "upvotes": 31, "downvotes": 1 }
+    },
+    {
+      "post": {
+        "id": 1005,
+        "name": "[FIXTURE] Post from just before the window",
+        "body": "Published a few hours before the seven-day window starts.",
+        "creator_id": 3,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-08T06:00:00.000000Z",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1005",
+        "local": true,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 3,
+        "name": "fixture_user_two",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_two",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1005, "comments": 3, "score": 8, "upvotes": 8, "downvotes": 0 }
+    },
+    {
+      "post": {
+        "id": 1006,
+        "name": "[FIXTURE] Post from two weeks ago",
+        "body": "Well outside the window.",
+        "creator_id": 3,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-02T12:00:00.000000Z",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1006",
+        "local": true,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 3,
+        "name": "fixture_user_two",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_two",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1006, "comments": 0, "score": 4, "upvotes": 4, "downvotes": 0 }
+    }
+  ],
+  "next_page": "Pfixture3"
+}

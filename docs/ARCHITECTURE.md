@@ -43,20 +43,23 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 ## Proposed endpoints
 
 - `GET /api/health` — status of the API, database, and Ollama dependency
-- `POST /api/ingest` — request a feed refresh
+- `POST /api/ingest` — run a feed refresh and return a summary (502 if the source cannot be read, 409 if one is already running)
+- `GET /api/search?q=...&k=5` — the stored discussions most similar to a query within the past seven days, with source links
 - `POST /api/reports/generate` — generate both report variants
 - `GET /api/reports/latest` — latest report and its metadata
 - `GET /api/reports/compare` — baseline/RAG outputs and evaluation
 
 ## Minimum data model
 
-**discussion:** stable external ID, community, title/body, source URL, posted timestamp, fetched timestamp.
+**discussion:** stable external ID, kind (post or comment), community, parent post ID, title/body, author, source URL, linked article URL, score, posted timestamp, fetched timestamp, content hash.
 
-**embedding:** discussion ID/chunk ID, embedding vector, model name, chunk text/hash, created timestamp.
+**embedding:** discussion ID, embedding vector, model name, content hash of the embedded text, dimensions, created timestamp. One per discussion; no chunks (D-010).
+
+**ingestion_run:** finished timestamp and the run summary (window, counts, any embedding error).
 
 **report_run:** period start/end, model/prompt/settings, generated timestamp, baseline report, RAG report, cited source IDs, evaluation notes.
 
-Exact schemas and migrations will be established during implementation.
+The discussion, embedding, and ingestion_run tables are defined in `src/storage/schema.ts`. report_run is not implemented yet.
 
 ## Ingestion design
 
@@ -66,7 +69,8 @@ Exact schemas and migrations will be established during implementation.
 - Upsert based on stable external IDs; avoid repeatedly embedding unchanged text.
 - Keep source URL and posted-at timestamps for each discussion.
 - Tests use a small labeled offline fixture in the Lemmy response shape (D-004), so parsing, normalization, and deduplication are tested without network access. The fixture is never loaded into the app database.
-- Bound the number of posts/chunks to fit the LLM's context window; document selection rules.
+- Bound the number of posts/chunks to fit the LLM's context window; document selection rules. The ingestion rules (which posts and comments are kept, what is skipped, pacing, and retries) are recorded in D-010.
+- If Ollama is unavailable during a refresh, the fetched discussions are still stored and the summary reports the embedding error; the next refresh embeds whatever is pending.
 
 ## Retrieval design
 

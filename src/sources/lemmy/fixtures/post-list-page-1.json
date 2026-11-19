@@ -1,0 +1,110 @@
+{
+  "posts": [
+    {
+      "post": {
+        "id": 1000,
+        "name": "[FIXTURE] Community rules reminder (pinned)",
+        "body": "Synthetic test data. Be kind and stay on topic.",
+        "creator_id": 1,
+        "community_id": 10,
+        "removed": false,
+        "locked": true,
+        "published": "2025-06-01T08:00:00.000000Z",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1000",
+        "local": true,
+        "featured_community": true,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 1,
+        "name": "fixture_moderator",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_moderator",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1000, "comments": 0, "score": 12, "upvotes": 12, "downvotes": 0 }
+    },
+    {
+      "post": {
+        "id": 1001,
+        "name": "  [FIXTURE] Starfall Odyssey delayed to March  ",
+        "url": "https://news.fixture.invalid/starfall-odyssey-delay",
+        "body": "The studio says it needs more time for polish.\r\n\r\n\r\n\r\nPre-orders stay valid.\u200B",
+        "creator_id": 2,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-15T09:00:00.000000Z",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1001",
+        "local": true,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 2,
+        "name": "fixture_user_one",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_one",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1001, "comments": 5, "score": 120, "upvotes": 125, "downvotes": 5 }
+    },
+    {
+      "post": {
+        "id": 1002,
+        "name": "[FIXTURE] Indie roguelike Emberdeep sells one million copies",
+        "url": "https://news.fixture.invalid/emberdeep-one-million",
+        "creator_id": 3,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-14T18:30:00.000000Z",
+        "deleted": false,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1002",
+        "local": true,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 3,
+        "name": "fixture_user_two",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_two",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1002, "comments": 0, "score": 45, "upvotes": 46, "downvotes": 1 }
+    },
+    {
+      "post": {
+        "id": 1003,
+        "name": "[FIXTURE] Deleted post that must not be stored",
+        "body": "The author deleted this.",
+        "creator_id": 2,
+        "community_id": 10,
+        "removed": false,
+        "locked": false,
+        "published": "2026-01-13T10:00:00.000000Z",
+        "deleted": true,
+        "nsfw": false,
+        "ap_id": "https://lemmy.fixture.invalid/post/1003",
+        "local": true,
+        "featured_community": false,
+        "featured_local": false
+      },
+      "creator": {
+        "id": 2,
+        "name": "fixture_user_one",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_one",
+        "bot_account": false,
+        "local": true
+      },
+      "counts": { "post_id": 1003, "comments": 1, "score": 1, "upvotes": 1, "downvotes": 0 }
+    }
+  ],
+  "next_page": "Pfixture2"
+}

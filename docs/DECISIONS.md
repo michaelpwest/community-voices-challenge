@@ -117,3 +117,31 @@ Chosen while building Milestone 1; confirm or change.
 - Requires Node.js 22.13 or newer for `node:sqlite` extension loading; the launcher checks this.
 - The demo runs on the Vite dev server, which is fine locally but is not a production setup.
 - Loading sqlite-vec through `node:sqlite` is verified on Windows x64 with Node 26 only; macOS and Linux are untested.
+
+## D-010 — Ingestion and retrieval rules (proposed)
+
+Chosen while building Milestone 2; confirm or change.
+
+**Choice:**
+- **Posts:** every post published in the past 168 hours, read from the "New" listing page by page until an ordinary post is older than the window. Old pinned posts are skipped without ending the walk.
+- **Comments:** each post's 10 highest-scored comments from any thread depth (`LEMMY_COMMENTS_PER_POST`, 0–50).
+- **Skipped:** deleted or removed items, comments by bot accounts, and blank comments.
+- **Identity:** `lemmy:<instance>:<post|comment>:<id>`. Re-fetched items update the existing row; a content hash decides whether the text changed and needs a new embedding.
+- **Links:** each item links to its page on the instance it was read from (`<instance>/post/<id>` or `<instance>/comment/<id>`).
+- **Embeddings:** one vector per post or comment, no chunking. A comment is embedded with its post title for context. Text past 6,000 characters is left out of the embedding only.
+- **Vector search:** vectors are stored in an ordinary table and ranked with sqlite-vec's `vec_distance_cosine`, comparing against every stored vector, filtered by community and time window.
+- **Pacing:** one request at a time, at least 300 ms apart; timeouts, HTTP 429, and 5xx are retried up to three times, honoring `Retry-After`.
+- **Test fixture:** hand-written and synthetic (D-004), in `src/sources/lemmy/fixtures/`.
+
+**Alternatives:**
+- All comments per post: about 1,400 a week, most of them low-signal, and several requests per busy post.
+- Chunking long posts: adds a chunk table and merging of results for text that is almost always short here.
+- A sqlite-vec `vec0` index table: faster on large collections, but it fixes the vector size at creation and complicates changing the embedding model.
+- A fixture captured from real posts: more realistic, but it would republish real users' content in a public repository.
+
+**Why:** A full refresh is about 50 requests and stores roughly 350 items (measured: 45 posts, 313 comments, 54 seconds including embedding; 15 seconds when nothing changed). At that size an exact search is instant and always correct.
+
+**Trade-off:**
+- New comments on posts older than a week are not picked up.
+- Score-based selection favors early and popular comments; a late but important reply can be missed.
+- Exact search would slow down with hundreds of thousands of vectors, far beyond one community's week.

@@ -15,7 +15,12 @@ describe('loadConfig', () => {
       embedModel: 'nomic-embed-text',
       numCtx: 16384,
     });
-    expect(config.source).toEqual({ instanceUrl: 'https://lemmy.world', community: 'games' });
+    expect(config.source).toEqual({
+      instanceUrl: 'https://lemmy.world',
+      community: 'games',
+      userAgent: 'community-voices/0.1 (local weekly community report demo)',
+      commentsPerPost: 10,
+    });
     expect(config.databasePath).toBe(resolve(BASE_DIR, 'data/community-voices.db'));
   });
 
@@ -40,6 +45,11 @@ describe('loadConfig', () => {
     expect(load).toThrow(/API_PORT/);
     expect(load).toThrow(/OLLAMA_URL: must be an http/);
     expect(load).toThrow(/WEB_PORT/);
+  });
+
+  it('limits comments per post to what Lemmy returns in one request', () => {
+    expect(loadConfig({ LEMMY_COMMENTS_PER_POST: '0' }, BASE_DIR).source.commentsPerPost).toBe(0);
+    expect(() => loadConfig({ LEMMY_COMMENTS_PER_POST: '51' }, BASE_DIR)).toThrow(/LEMMY_COMMENTS_PER_POST/);
   });
 
   it('rejects identical web and API ports', () => {

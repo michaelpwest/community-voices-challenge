@@ -3,14 +3,16 @@ import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import * as sqliteVec from 'sqlite-vec';
 import type { DatabaseStatus } from '../shared/health';
+import { initializeSchema } from './schema';
 
-/** Opens (creating if needed) the SQLite file with the sqlite-vec extension loaded. */
+/** Opens (creating if needed) the SQLite file with sqlite-vec loaded and the tables in place. */
 export function openDatabase(databasePath: string): DatabaseSync {
   mkdirSync(dirname(databasePath), { recursive: true });
   const db = new DatabaseSync(databasePath, { allowExtension: true });
   try {
     sqliteVec.load(db);
     db.enableLoadExtension(false);
+    initializeSchema(db);
   } catch (error) {
     db.close();
     throw error;

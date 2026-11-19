@@ -1,0 +1,46 @@
+{
+  "comments": [
+    {
+      "comment": {
+        "id": 2010,
+        "creator_id": 8,
+        "post_id": 1004,
+        "content": "Lanternlight Kitchen is a great two-player co-op game. We finished it in one sitting.",
+        "removed": false,
+        "published": "2026-01-10T08:00:00.000000Z",
+        "deleted": false,
+        "ap_id": "https://third.fixture.invalid/comment/555",
+        "local": false,
+        "path": "0.2010"
+      },
+      "creator": {
+        "id": 8,
+        "name": "fixture_user_five",
+        "actor_id": "https://third.fixture.invalid/u/fixture_user_five",
+        "bot_account": false
+      },
+      "counts": { "comment_id": 2010, "score": 12, "upvotes": 12, "downvotes": 0, "child_count": 0 }
+    },
+    {
+      "comment": {
+        "id": 2011,
+        "creator_id": 2,
+        "post_id": 1004,
+        "content": "Deleted by its author; must not be stored.",
+        "removed": false,
+        "published": "2026-01-10T09:00:00.000000Z",
+        "deleted": true,
+        "ap_id": "https://lemmy.fixture.invalid/comment/2011",
+        "local": true,
+        "path": "0.2011"
+      },
+      "creator": {
+        "id": 2,
+        "name": "fixture_user_one",
+        "actor_id": "https://lemmy.fixture.invalid/u/fixture_user_one",
+        "bot_account": false
+      },
+      "counts": { "comment_id": 2011, "score": 3, "upvotes": 3, "downvotes": 0, "child_count": 0 }
+    }
+  ]
+}

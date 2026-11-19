@@ -1,5 +1,7 @@
 // Response types shared by the API, the launcher, and the web UI.
-// Keep this file free of imports so the browser build can use it.
+// Type-only imports keep this file usable by the browser build.
+
+import type { DataStatus } from './discussions';
 
 export type ModelRole = 'generation' | 'embedding';
 
@@ -35,6 +37,8 @@ export interface HealthResponse {
   database: DatabaseStatus;
   ollama: OllamaStatus;
   source: SourceInfo;
+  /** Null when the stored data could not be read. */
+  data: DataStatus | null;
 }
 
 export interface ApiErrorResponse {

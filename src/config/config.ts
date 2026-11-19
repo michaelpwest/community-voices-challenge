@@ -15,6 +15,8 @@ export interface AppConfig {
   source: {
     instanceUrl: string;
     community: string;
+    userAgent: string;
+    commentsPerPost: number;
   };
 }
 
@@ -52,6 +54,9 @@ const envSchema = z.object({
   DATABASE_PATH: name.default('./data/community-voices.db'),
   LEMMY_INSTANCE_URL: httpUrl.default('https://lemmy.world'),
   LEMMY_COMMUNITY: name.default('games'),
+  LEMMY_USER_AGENT: name.default('community-voices/0.1 (local weekly community report demo)'),
+  // Lemmy returns at most 50 items per request.
+  LEMMY_COMMENTS_PER_POST: z.coerce.number().int().min(0).max(50).default(10),
 });
 
 type EnvKey = keyof z.infer<typeof envSchema>;
@@ -90,6 +95,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, baseDir = proce
     source: {
       instanceUrl: values.LEMMY_INSTANCE_URL,
       community: values.LEMMY_COMMUNITY,
+      userAgent: values.LEMMY_USER_AGENT,
+      commentsPerPost: values.LEMMY_COMMENTS_PER_POST,
     },
   };
 }

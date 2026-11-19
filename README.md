@@ -2,7 +2,7 @@
 
 A local-first demonstration of Retrieval-Augmented Generation (RAG) for weekly community reporting.
 
-> **Status:** Milestone 1 (foundation) is in place: the launcher, API, and web UI start and report setup status. Feed ingestion, embeddings, and reports are not implemented yet.
+> **Status:** Milestones 1 and 2 are in place: the launcher, API, and web UI start; the past week of the community can be ingested, embedded, and searched. Report generation and the comparison UI are not implemented yet.
 
 ## Challenge
 
@@ -35,9 +35,20 @@ So far these steps have been run on Windows 11 with Node.js 26 only.
 3. Clone the repository and run `npm install`.
 4. Optional: copy `.env.example` to `.env` to change ports, models, or URLs (never commit `.env`). Defaults are used when `.env` is absent.
 5. Run `npm start`. The launcher checks Ollama and the models, then starts the API on `http://localhost:3001` and the web UI on `http://localhost:3000`.
-6. Open `http://localhost:3000` to see setup status. Ingestion and reports are not implemented yet.
+6. Choose **Refresh feed** in the launcher menu (or run `curl -X POST http://localhost:3001/api/ingest`). This reads the past week of posts and their top comments from lemmy.world and embeds them; it needs internet access and took about a minute in testing. Running it again adds no duplicates.
+7. Open `http://localhost:3000` to see setup status and how much data is stored. Reports are not implemented yet.
+8. Optional: try retrieval directly, for example `http://localhost:3001/api/search?q=studio+layoffs&k=5`. Results come only from the past seven days and include a link to each source post or comment.
 
 The launcher never installs software. If Ollama is not running or a model is missing, it explains what to do and asks before starting Ollama or downloading a model. Its menu offers feed refresh, system status, clearing local data (after typing `DELETE`), and quit. On exit it stops only the processes it started; an Ollama server that was already running is left alone.
+
+### What gets ingested
+
+- Every post from the past seven days, plus each post's 10 highest-scored comments (`LEMMY_COMMENTS_PER_POST` in `.env`).
+- Deleted or removed items, bot comments, and blank comments are skipped.
+- Requests are made one at a time with a pause between them and an identifying user-agent (`LEMMY_USER_AGENT`).
+- If lemmy.world cannot be reached, the refresh fails with a message saying so and existing data is left as it was. There is no offline sample data in the app; the synthetic fixture under `src/sources/lemmy/fixtures/` is used by tests only.
+
+The full rules and their trade-offs are in decision D-010 in the [decision log](docs/DECISIONS.md).
 
 ### Other commands
 
