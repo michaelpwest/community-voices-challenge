@@ -102,6 +102,7 @@ Chosen while building Milestone 1; confirm or change.
 - One npm package (no workspaces): server code in `src/`, web UI in `web/`.
 - API: Hono on `@hono/node-server`.
 - Web UI: React with the Vite dev server, which proxies `/api` to the API.
+- Styling: Tailwind CSS (v4, through its Vite plugin). Utility classes live in the components; `web/src/styles.css` only defines the color names, each with a light and a dark value. This replaced a hand-written stylesheet of about 370 lines.
 - SQLite driver: Node's built-in `node:sqlite`, loading the sqlite-vec extension.
 - TypeScript is run directly with `tsx`; there is no build step.
 - Tests: Vitest. Lint: ESLint with typescript-eslint. Validation: zod.

@@ -72,11 +72,11 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## Milestone 4 — Usable demo UI
 
-- [ ] Show the selected community, report period, and last ingestion time.
-- [ ] Display previous-week themes and next-week predictions.
-- [ ] Provide baseline/RAG side-by-side views and clickable supporting source URLs.
-- [ ] Provide actionable loading/error/empty states and refresh status.
-- [ ] Test mobile-width layout.
+- [x] Show the selected community, report period, and last ingestion time.
+- [x] Display previous-week themes and next-week predictions.
+- [x] Provide baseline/RAG side-by-side views and clickable supporting source URLs.
+- [x] Provide actionable loading/error/empty states and refresh status.
+- [x] Test mobile-width layout. _Checked in headless Edge at 390 px and 1280 px; not yet on a real phone._
 
 **Done when:** a reviewer can launch the app and demonstrate the assignment from the browser without reading source code.
 

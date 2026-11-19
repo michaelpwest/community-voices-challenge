@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 // Explicit .ts extensions keep this file loadable by Vite's native config loader.
@@ -13,7 +14,7 @@ export default defineConfig(() => {
   const config = loadConfig(process.env, REPO_ROOT);
   return {
     root: WEB_ROOT,
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     server: {
       host: LOOPBACK_HOST,
       port: config.webPort,

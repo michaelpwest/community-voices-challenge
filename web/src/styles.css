@@ -1,136 +1,24 @@
+@import 'tailwindcss';
+
+/*
+ * Styling is done with Tailwind utility classes in the components. This file
+ * only defines the color names they use. Each color has a light and a dark
+ * value, chosen by the browser from the viewer's system setting.
+ */
+
 :root {
   color-scheme: light dark;
-  --text: #1c2430;
-  --muted: #5a6677;
-  --surface: #ffffff;
-  --page: #f3f5f8;
-  --border: #d6dce5;
-  --accent: #1d5fd1;
-  --ok: #17703a;
-  --problem: #a8321f;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #e6eaf0;
-    --muted: #a3adbb;
-    --surface: #1b2230;
-    --page: #111723;
-    --border: #2f3a4d;
-    --accent: #7fb0ff;
-    --ok: #63d28f;
-    --problem: #ff9a85;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--page);
-  color: var(--text);
-}
-
-main {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
-}
-
-h1 {
-  margin: 0;
-  font-size: 1.75rem;
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-a {
-  color: var(--accent);
-}
-
-.subtitle {
-  margin: 0.25rem 0 1.5rem;
-  color: var(--muted);
-}
-
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-button {
-  padding: 0.5rem 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: progress;
-  opacity: 0.6;
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
-  gap: 1rem;
-}
-
-.card,
-.notice {
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--surface);
-}
-
-.card p {
-  margin: 0.5rem 0;
-}
-
-.card ul {
-  margin: 0;
-  padding-left: 1.1rem;
-  color: var(--muted);
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
-}
-
-.notice {
-  margin: 1rem 0 0;
-  color: var(--muted);
-}
-
-.notice.problem {
-  border-color: var(--problem);
-  color: var(--problem);
-}
-
-.badge {
-  margin-left: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badge.ok {
-  color: var(--ok);
-}
-
-.badge.problem {
-  color: var(--problem);
+@theme {
+  --color-page: light-dark(#f3f5f8, #111723);
+  --color-surface: light-dark(#ffffff, #1b2230);
+  --color-ink: light-dark(#1c2430, #e6eaf0);
+  --color-muted: light-dark(#5a6677, #a3adbb);
+  --color-line: light-dark(#d6dce5, #2f3a4d);
+  --color-accent: light-dark(#1d5fd1, #7fb0ff);
+  --color-accent-soft: light-dark(#e8f0fd, #22304a);
+  --color-ok: light-dark(#17703a, #63d28f);
+  --color-warn: light-dark(#8a5a00, #f0c060);
+  --color-problem: light-dark(#a8321f, #ff9a85);
 }

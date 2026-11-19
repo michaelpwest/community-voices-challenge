@@ -2,7 +2,7 @@
 
 A local-first demonstration of Retrieval-Augmented Generation (RAG) for weekly community reporting.
 
-> **Status:** Milestones 1 to 3 are in place: the launcher, API, and web UI start; the past week of the community can be ingested, embedded, and searched; and the baseline and RAG reports can be generated and compared from the launcher or the API. Showing the reports in the web UI is not implemented yet.
+> **Status:** Milestones 1 to 4 are in place: the whole demo runs from the browser. Remaining work is final verification from a clean clone, including macOS and Linux, which have not been tested.
 
 ## Challenge
 
@@ -21,7 +21,7 @@ The challenge allows any frontend/backend tools and suggests keeping the effort 
 ## Stack
 
 - TypeScript on Node.js 22.13 or newer; API built with Hono
-- Responsive React web UI served by Vite (mobile-friendly; native mobile app is out of scope for MVP)
+- Responsive React web UI styled with Tailwind CSS and served by Vite (mobile-friendly; native mobile app is out of scope for MVP)
 - Ollama for local text generation (`llama3.1:8b`) and embeddings (`nomic-embed-text`), both configurable
 - SQLite (Node's built-in `node:sqlite`) + sqlite-vec for local storage and vector similarity search, with no separate database server required
 - A single root `npm start` launcher for local development/demo
@@ -35,11 +35,20 @@ So far these steps have been run on Windows 11 with Node.js 26 only.
 3. Clone the repository and run `npm install`.
 4. Optional: copy `.env.example` to `.env` to change ports, models, or URLs (never commit `.env`). Defaults are used when `.env` is absent.
 5. Run `npm start`. The launcher checks Ollama and the models, then starts the API on `http://localhost:3001` and the web UI on `http://localhost:3000`.
-6. Choose **Refresh feed** in the launcher menu (or run `curl -X POST http://localhost:3001/api/ingest`). This reads the past week of posts and their top comments from lemmy.world and embeds them; it needs internet access and took about a minute in testing. Running it again adds no duplicates.
-7. Choose **Generate reports** in the launcher menu. The same local model writes two reports for the past week: a baseline with no retrieved posts, and a RAG report grounded in retrieved posts and comments. The launcher prints both sets of themes and predictions and a short comparison. This took about 16 seconds on a desktop GPU and will take longer on a CPU.
-8. Read the full result at `http://localhost:3001/api/reports/latest`: both reports, the evidence passages with their source links, the settings shared by both runs, and the comparison metrics.
-9. Open `http://localhost:3000` to see setup status and how much data is stored. The reports are not shown there yet.
-10. Optional: try retrieval directly, for example `http://localhost:3001/api/search?q=studio+layoffs&k=5`. Results come only from the past seven days and include a link to each source post or comment.
+6. Open `http://localhost:3000`. The top panel shows the community, how much is stored, and when the feed and report were last updated.
+7. Click **Refresh feed**. This reads the past week of posts and their top comments from lemmy.world and embeds them; it needs internet access and took about a minute in testing. Running it again adds no duplicates.
+8. Click **Generate reports**. The same local model writes two reports for the past week: one grounded in retrieved posts and comments (RAG), and a baseline with no retrieved posts. This took about 16 seconds on a desktop GPU and will take longer on a CPU; the page shows each stage as it runs.
+9. Read the result on the same page:
+   - **Two reports side by side** (stacked on a phone), each with a past-week summary, themes, predictions for the coming week, and limitations.
+   - **Source links** under each RAG theme and prediction, opening the original post or comment on lemmy.world.
+   - **How the two reports compare**, a table of the same automatic checks applied to both.
+   - **Evidence** given to the retrieval run and the **settings** shared by both runs, in two expandable sections.
+
+The same two actions are in the launcher menu (**Refresh feed** and **Generate reports**), and the API can be used directly:
+
+- `curl -X POST http://localhost:3001/api/ingest` refreshes the feed.
+- `http://localhost:3001/api/reports/latest` returns the latest run as JSON.
+- `http://localhost:3001/api/search?q=studio+layoffs&k=5` tries retrieval on its own. Results come only from the past seven days and include a link to each source.
 
 The launcher never installs software. If Ollama is not running or a model is missing, it explains what to do and asks before starting Ollama or downloading a model. Its menu offers feed refresh, system status, clearing local data (after typing `DELETE`), and quit. On exit it stops only the processes it started; an Ollama server that was already running is left alone.
 

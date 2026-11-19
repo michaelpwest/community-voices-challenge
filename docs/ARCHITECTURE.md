@@ -38,7 +38,7 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 | Vector storage | Store posts/chunks and search vectors with recency restrictions |
 | Report service | Build prompts and generate baseline/RAG reports with the same LLM |
 | API | Health, ingestion trigger, latest reports, report generation, comparisons |
-| Web UI | Responsive display of reports, supporting links, comparison, and status |
+| Web UI | Responsive display of reports, supporting links, comparison, and status; buttons to refresh the feed and generate reports. It polls the report job while one is running, including one started from the launcher. |
 
 ## Proposed endpoints
 

@@ -1,144 +1,103 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { DataStatus } from '../../src/shared/discussions';
 import type { HealthResponse } from '../../src/shared/health';
-import { fetchHealth } from './api';
+import type { ReportRun } from '../../src/shared/reports';
+import { ComparisonPanel } from './components/ComparisonPanel';
+import { EvidenceList } from './components/EvidenceList';
+import { ReportColumn } from './components/ReportColumn';
+import { StatusPanel } from './components/StatusPanel';
+import { Button, Hint, Message, Panel } from './components/ui';
+import { formatDateTime, formatPeriod, indexEvidence } from './format';
+import { useDashboard } from './useDashboard';
 
-type HealthState =
-  | { phase: 'loading' }
-  | { phase: 'error'; message: string }
-  | { phase: 'loaded'; health: HealthResponse };
-
-interface StatusCardProps {
-  title: string;
-  ok: boolean;
-  summary: string;
-  details: string[];
-}
-
-function StatusCard({ title, ok, summary, details }: StatusCardProps) {
+function ReportView({ run }: { run: ReportRun }) {
+  const evidenceByLabel = indexEvidence(run.evidence);
   return (
-    <section className="card">
-      <h2>
-        {title} <span className={ok ? 'badge ok' : 'badge problem'}>{ok ? 'Ready' : 'Needs attention'}</span>
-      </h2>
-      <p>{summary}</p>
-      <ul>
-        {details.map((detail) => (
-          <li key={detail}>{detail}</li>
-        ))}
-      </ul>
+    <section aria-labelledby="report-heading">
+      <header className="mt-6 mb-3">
+        <h2 id="report-heading" className="text-xl font-semibold">
+          Weekly report: {formatPeriod(run.windowStart, run.windowEnd)}
+        </h2>
+        <Hint>
+          Generated {formatDateTime(run.generatedAt)} by {run.settings.model}. Both versions used the same model,
+          instructions, and settings; only the retrieved evidence differs.
+        </Hint>
+      </header>
+
+      {run.warnings.map((warning) => (
+        <Message key={warning} tone="problem">
+          {warning}
+        </Message>
+      ))}
+
+      {/* Side by side on wide screens, stacked on phones. */}
+      <div className="mb-4 grid items-start gap-4 lg:grid-cols-2">
+        <ReportColumn variant={run.rag} evidenceByLabel={evidenceByLabel} evidenceCount={run.evidence.length} />
+        <ReportColumn variant={run.baseline} evidenceByLabel={evidenceByLabel} evidenceCount={0} />
+      </div>
+
+      <ComparisonPanel run={run} />
+      <EvidenceList run={run} />
     </section>
   );
 }
 
-function describeData(data: DataStatus | null): Omit<StatusCardProps, 'title'> {
-  if (!data) return { ok: false, summary: 'Stored data could not be read.', details: [] };
-  const total = data.posts + data.comments;
-  if (total === 0) {
-    return { ok: false, summary: 'No discussions stored yet.', details: ['Choose "Refresh feed" in the launcher.'] };
-  }
-  const lastRefresh = data.lastIngestion
-    ? `Last refresh: ${new Date(data.lastIngestion.finishedAt).toLocaleString()}`
-    : 'Last refresh: unknown';
-  return {
-    ok: data.embedded === total,
-    summary: `${data.posts} posts and ${data.comments} comments stored`,
-    details: [`${data.embedded} of ${total} embedded for search`, lastRefresh],
-  };
-}
-
-function SystemStatus({ health }: { health: HealthResponse }) {
-  const { database, ollama } = health;
-  const missing = ollama.models.filter((model) => !model.available);
+/** What to show in place of a report when there is none yet. */
+function EmptyState({ health }: { health: HealthResponse }) {
+  const stored = (health.data?.posts ?? 0) + (health.data?.comments ?? 0);
   return (
-    <div className="cards">
-      <StatusCard title="Community data" {...describeData(health.data)} />
-      <StatusCard
-        title="Database"
-        ok={database.ok}
-        summary={database.ok ? `SQLite with sqlite-vec ${database.vectorExtensionVersion}` : 'The database could not be opened.'}
-        details={database.error ? [database.error, database.path] : [database.path]}
-      />
-      <StatusCard
-        title="Ollama"
-        ok={ollama.reachable && missing.length === 0}
-        summary={
-          ollama.reachable
-            ? `Version ${ollama.version ?? 'unknown'} at ${ollama.url}`
-            : `Not reachable at ${ollama.url}. Start Ollama, or set OLLAMA_URL in .env.`
-        }
-        details={
-          ollama.reachable
-            ? ollama.models.map((model) =>
-                model.available
-                  ? `${model.role} model ${model.name}: available`
-                  : `${model.role} model ${model.name}: missing. Run "ollama pull ${model.name}".`,
-              )
-            : [ollama.error ?? 'Unknown error']
-        }
-      />
-    </div>
+    <Panel aria-label="Getting started">
+      <h2 className="text-xl font-semibold">{stored === 0 ? 'No community data yet' : 'No report yet'}</h2>
+      <p className="mt-1 max-w-2xl">
+        {stored === 0 ? (
+          <>
+            Choose <strong>Refresh feed</strong> to load the past week of posts and comments from the community. This
+            needs internet access and takes about a minute.
+          </>
+        ) : (
+          <>
+            Choose <strong>Generate reports</strong> to have the local model write two versions of the weekly report:
+            one using posts retrieved from this week, and a baseline without them.
+          </>
+        )}
+      </p>
+    </Panel>
   );
 }
 
 export function App() {
-  const [state, setState] = useState<HealthState>({ phase: 'loading' });
-
-  const load = useCallback((signal?: AbortSignal) => {
-    setState({ phase: 'loading' });
-    fetchHealth(signal)
-      .then((health) => setState({ phase: 'loaded', health }))
-      .catch((error: unknown) => {
-        if (signal?.aborted) return;
-        setState({ phase: 'error', message: error instanceof Error ? error.message : String(error) });
-      });
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
-    return () => controller.abort();
-  }, [load]);
-
-  const source = state.phase === 'loaded' ? state.health.source : null;
+  const dashboard = useDashboard();
+  const { loading, loadError, health, run } = dashboard;
 
   return (
-    <main>
-      <header>
-        <h1>Community Voices</h1>
-        <p className="subtitle">
-          Weekly community report, with and without retrieval.
-          {source && (
-            <>
-              {' '}
-              Community:{' '}
-              <a href={`${source.instanceUrl}/c/${source.community}`} target="_blank" rel="noreferrer">
-                {source.community}
-              </a>
-            </>
-          )}
-        </p>
+    <main className="mx-auto max-w-7xl px-4 pt-6 pb-12">
+      <header className="mb-5">
+        <h1 className="text-3xl font-bold">Community Voices</h1>
+        <p className="text-muted">A weekly community report from a local model, with and without retrieval.</p>
       </header>
 
-      <div className="toolbar">
-        <h2>System status</h2>
-        <button type="button" onClick={() => load()} disabled={state.phase === 'loading'}>
-          {state.phase === 'loading' ? 'Checking…' : 'Check again'}
-        </button>
-      </div>
+      {loading && !health && <Panel>Loading…</Panel>}
 
-      {state.phase === 'loading' && <p className="notice">Checking the API, database, and Ollama…</p>}
-      {state.phase === 'error' && (
-        <p className="notice problem" role="alert">
-          {state.message}
-        </p>
+      {loadError && (
+        <Message tone="problem">
+          <p>{loadError}</p>
+          <Button className="mt-2 text-ink" onClick={dashboard.reload} disabled={loading}>
+            {loading ? 'Trying…' : 'Try again'}
+          </Button>
+        </Message>
       )}
-      {state.phase === 'loaded' && <SystemStatus health={state.health} />}
 
-      <p className="notice">
-        Reports can be generated from the launcher menu. Viewing the reports and their comparison on this page is not
-        built yet.
-      </p>
+      {health && (
+        <>
+          <StatusPanel
+            health={health}
+            run={run}
+            job={dashboard.job}
+            feed={dashboard.feed}
+            onRefreshFeed={dashboard.refreshFeed}
+            onGenerateReports={dashboard.generateReports}
+          />
+          {run ? <ReportView run={run} /> : <EmptyState health={health} />}
+        </>
+      )}
     </main>
   );
 }
