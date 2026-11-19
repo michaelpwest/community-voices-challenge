@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets (.env.example stays tracked)
+.env
+.env.*
+!.env.example
+
+# Local SQLite data
+data/
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test and tool caches
+coverage/
+.vite/
+.eslintcache
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings
+.claude/settings.local.json

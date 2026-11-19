@@ -1,0 +1,116 @@
+# Community Voices — Implementation Plan
+
+## Goal
+
+Build the smallest useful local-first application that ingests recent discussions from one active community and produces a weekly report covering **the past week** and **predictions for the coming week**. Demonstrate the effect of retrieval by comparing the same local LLM with and without RAG.
+
+## Scope and constraints
+
+- Target a compact coding-challenge MVP, not a production SaaS platform.
+- Implement one supported community before generalizing.
+- Reviewer must be able to clone, set up, and demo locally using the README.
+- Use local Ollama models for LLM generation and embeddings; internet is needed for initial downloads and live ingestion.
+- Avoid requiring a paid LLM API.
+- A small labeled offline fixture supports automated tests (D-004); the demo still depends on the live community feed, so feed failures must produce clear errors.
+- Keep credentials out of Git and avoid scraping against source terms or rate limits.
+
+## Decisions to confirm before coding
+
+- [x] Community and compliant ingestion method: `games` on lemmy.world via Lemmy's public API (D-005)
+- [x] LLM and embedding models: `llama3.1:8b` and `nomic-embed-text`, configurable via `.env` (D-007)
+- [x] Vector store: SQLite + sqlite-vec (D-006)
+- [x] Frontend: responsive web app, not native mobile for this exercise (D-002)
+- [x] Local AI: Ollama for generation and embeddings (D-001)
+- [x] Same model and settings for baseline and RAG (D-003)
+- [x] Small labeled offline fixture for tests, alongside live ingestion (D-004)
+- [x] Ingestion and reports run on demand only; no scheduler (D-008)
+
+## MVP acceptance criteria
+
+- [ ] A repeatable command/API operation ingests recent community discussions and prevents duplicates.
+- [ ] Documents include source URL, author/identifier when permitted, posted timestamp, and content.
+- [ ] The system generates and persists embeddings and can retrieve top-k relevant discussions using vector similarity, with a recent-date filter.
+- [ ] RAG generation uses retrieved evidence, produces a past-week summary and next-week predictions, and cites source posts.
+- [ ] Baseline generation uses the **same LLM, task prompt, time range, and sampling settings** without retrieved community evidence.
+- [ ] Comparison UI shows both outputs and a short evidence-based evaluation (specificity, citations, unsupported claims).
+- [ ] All app components can be launched and stopped locally, with useful errors for missing services.
+- [ ] Setup, limitations, and tests are documented and verified.
+
+## Milestone 1 — Minimal foundation
+
+- [ ] Initialize TypeScript workspace, API, responsive web UI, lint/test tooling.
+- [ ] Add `.env.example` for URLs, model names, DB configuration, and source configuration.
+- [ ] Implement `npm start` launcher: detect Ollama, validate prerequisites, start API on `:3001` and web on `:3000`.
+- [ ] Support a configured Ollama URL; offer guided setup rather than silently installing software.
+- [ ] Add launcher actions: refresh feed, clear data **with confirmation**, system status, graceful exit.
+- [ ] Ensure API and web can also start independently for testing/automation.
+
+**Done when:** a fresh clone can start the UI/API after documented prerequisites, and the launcher handles Ctrl+C without killing pre-existing Ollama services.
+
+## Milestone 2 — Data ingestion and embeddings
+
+- [ ] Define a data-source interface and implement it for Lemmy `games` on lemmy.world (D-005).
+- [ ] Fetch the past week's posts and their comments with pagination, rate limiting, a descriptive user-agent, and error handling.
+- [ ] Select comments to keep within context limits (e.g. top-scored per post) and document the rule.
+- [ ] Normalize text, timestamps, canonical URLs, and stable IDs; deduplicate/upsert.
+- [ ] Add a small labeled offline fixture in the Lemmy response shape for tests (D-004); never load it into the app database.
+- [ ] Chunk only if needed, compute embeddings through Ollama, and store them.
+- [ ] Implement semantic top-k retrieval with a seven-day window and source metadata.
+
+**Done when:** a repeat ingestion does not duplicate records and relevant posts can be retrieved with usable source links.
+
+## Milestone 3 — Report generation and A/B comparison
+
+- [ ] Define the report schema: themes, supporting discussions, prior-week summary, next-week predictions, limitations.
+- [ ] Implement baseline generation without retrieved community posts.
+- [ ] Implement RAG generation using retrieved passages with traceable source IDs/URLs.
+- [ ] Keep model, instructions, generation settings, and report time window consistent across both variants.
+- [ ] Store generated report, retrieval metadata, and run configuration for repeatability.
+- [ ] Add simple qualitative comparison: relevance, factual grounding, citations, unsupported claims.
+
+**Done when:** the app shows meaningful differences attributable to retrieved evidence; the RAG output does not claim unsupported certainty about future trends.
+
+## Milestone 4 — Usable demo UI
+
+- [ ] Show the selected community, report period, and last ingestion time.
+- [ ] Display previous-week themes and next-week predictions.
+- [ ] Provide baseline/RAG side-by-side views and clickable supporting source URLs.
+- [ ] Provide actionable loading/error/empty states and refresh status.
+- [ ] Test mobile-width layout.
+
+**Done when:** a reviewer can launch the app and demonstrate the assignment from the browser without reading source code.
+
+## Milestone 5 — Verification and submission
+
+- [ ] Unit tests for normalization/deduplication, retrieval/date filtering, prompt construction, and response validation, using the offline fixture (D-004).
+- [ ] Verify a complete run using live data.
+- [ ] Review code for compact functions, clear names, error handling, and unnecessary complexity.
+- [ ] Update README with **actual** prerequisite and startup commands.
+- [ ] Check security and licensing constraints; ensure `.env` is excluded.
+- [ ] Commit meaningful working increments and send public repo as submission.
+
+**Done when:** the README works from a clean clone and explains exactly how to reproduce the A/B comparison.
+
+## Deferred
+
+- 2D embedding projection/visualization
+- Retrieval frequency counters per embedding
+- Multiple communities and advanced scheduling
+- Native mobile client
+- Authentication, deployment automation, production observability
+
+## Working process with AI
+
+1. Work on **one unchecked task** or tightly related task group at a time.
+2. Before implementing, state files to change and tests to add.
+3. Implement only the current scope; avoid unnecessary abstractions.
+4. Run checks; inspect actual outputs and fix failures.
+5. Update this plan's checkboxes only after verification.
+6. Commit coherent, tested features with descriptive messages.
+
+## Open questions
+
+- How should long discussions be selected or summarized within context limits?
+- Does `llama3.1:8b` produce good enough reports, or should we switch to `qwen3:8b` (D-007)?
+- Which exact comparison criteria are easiest for a reviewer to see?
+- Should the test fixture be hand-written or a trimmed capture of real posts (which would redistribute user content)?
