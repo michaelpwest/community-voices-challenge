@@ -45,9 +45,9 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 - `GET /api/health` — status of the API, database, and Ollama dependency
 - `POST /api/ingest` — run a feed refresh and return a summary (502 if the source cannot be read, 409 if one is already running)
 - `GET /api/search?q=...&k=5` — the stored discussions most similar to a query within the past seven days, with source links
-- `POST /api/reports/generate` — generate both report variants
-- `GET /api/reports/latest` — latest report and its metadata
-- `GET /api/reports/compare` — baseline/RAG outputs and evaluation
+- `POST /api/reports/generate` — start generating both report variants in the background (202; 409 if already running)
+- `GET /api/reports/status` — state of that job: idle, running (with the current step), succeeded, or failed (with the reason)
+- `GET /api/reports/latest` — the latest stored run: both reports, the evidence given to the RAG run, shared settings, and the comparison (404 before the first run)
 
 ## Minimum data model
 
@@ -59,7 +59,7 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 
 **report_run:** period start/end, model/prompt/settings, generated timestamp, baseline report, RAG report, cited source IDs, evaluation notes.
 
-The discussion, embedding, and ingestion_run tables are defined in `src/storage/schema.ts`. report_run is not implemented yet.
+All four tables are defined in `src/storage/schema.ts`. A report_run is stored as one JSON document that also holds the evidence passages (label, source URL, excerpt, and how each was selected).
 
 ## Ingestion design
 
@@ -80,7 +80,7 @@ The discussion, embedding, and ingestion_run tables are defined in `src/storage/
 4. Pass a bounded, clearly delimited evidence bundle with URLs/IDs to the local LLM.
 5. Require summary claims to rely on retrieved evidence; label forecasts as predictions.
 
-**Important:** Semantic top-k retrieval alone may miss broad community themes; consider combining it with engagement/recency sampling or per-topic aggregation if the initial output is skewed.
+**Important:** Semantic top-k retrieval alone may miss broad community themes, so report evidence combines it with the week's highest-scored posts and their top comments (D-011). The code is in `src/reports/`: evidence selection, prompt, schema, citation checking, and comparison are separate modules.
 
 ## Fair baseline vs. RAG comparison
 

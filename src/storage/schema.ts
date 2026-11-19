@@ -37,6 +37,15 @@ const SCHEMA = `
     finished_at  TEXT NOT NULL,
     summary   TEXT NOT NULL        -- the IngestSummary as JSON
   );
+
+  -- One row per baseline-versus-RAG generation: both reports, the evidence
+  -- given to the RAG run, the settings shared by both, and the comparison.
+  CREATE TABLE IF NOT EXISTS report_runs (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    community     TEXT NOT NULL,
+    generated_at  TEXT NOT NULL,
+    payload       TEXT NOT NULL    -- the ReportRun (without its id) as JSON
+  );
 `;
 
 export function initializeSchema(db: DatabaseSync): void {

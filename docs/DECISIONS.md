@@ -145,3 +145,31 @@ Chosen while building Milestone 2; confirm or change.
 - New comments on posts older than a week are not picked up.
 - Score-based selection favors early and popular comments; a late but important reply can be missed.
 - Exact search would slow down with hundreds of thousands of vectors, far beyond one community's week.
+
+## D-011 — Report generation and comparison (proposed)
+
+Chosen while building Milestone 3; confirm or change.
+
+**Choice:**
+- **One prompt for both runs:** the baseline and RAG runs use the same system message, report period, JSON schema, and sampling settings (temperature 0.2, seed 42, 2,500 output tokens, `OLLAMA_NUM_CTX`). Only the evidence section differs: retrieved passages for RAG, a "no posts were retrieved" line for the baseline.
+- **Baseline behavior:** with no evidence, the model is told to write the full report from its general knowledge and to say so under limitations. The baseline is always labeled as unverified general knowledge.
+- **Evidence for RAG (hybrid):** the week's 8 highest-scored posts with 2 top comments each, plus vector search (5 results each) for five broad queries covering releases, controversies, upcoming events, industry news, and recommendations. Merged, capped at 50 passages and 24,000 characters, and each passage records how it was selected.
+- **Report shape:** summary, themes, predictions (each with rationale and low/medium/high confidence), and limitations. Themes and predictions carry source labels (`S1`, `S2`, ...). The model's output is constrained to this schema by Ollama and validated again on receipt.
+- **Citation checking:** every cited label is checked against the evidence list. Labels that match nothing are removed from the report and reported separately.
+- **Untrusted evidence:** passages sit inside a delimited section, are flattened to one line each, cannot contain the delimiter, and the prompt tells the model to ignore instructions inside them. Author names are not sent to the model.
+- **Comparison:** automatic text checks applied identically to both reports: how many themes and predictions cite sources, how many distinct sources, how many "named terms" (capitalized names, acronyms, numbers) also appear in the week's stored discussions, and how many predictions claim high confidence.
+- **Job model:** generation runs in the background; clients start it, poll a status route, and then fetch the stored run.
+
+**Alternatives:**
+- A baseline told to refuse without evidence: honest, but it produces an empty report and nothing to compare. Tried first and dropped.
+- Similarity search alone: with broad queries it surfaced loosely related items and could miss the week's biggest thread.
+- Top posts alone: no use of the vector store, and nothing beyond the most upvoted threads.
+- A second LLM call to judge the reports: slower, and the judgment would itself be unverified.
+
+**Why:** Measured on one week of `games` with `llama3.1:8b`: both reports generate in about 16 seconds on the development GPU. The RAG prompt used about 4,200 of 16,384 context tokens. The RAG report covered that week's actual threads with 22 distinct citations, while the baseline described topics that were not discussed.
+
+**Trade-off:**
+- The named-term check is a rough indicator: a term counts as found if the word appears anywhere in the week's discussions, so a wrong claim built from words that happen to be present is not caught.
+- Evidence favors high-scoring threads, so the report reflects what was popular more than what was typical.
+- The fixed seed reduces but does not remove run-to-run variation; two baseline runs differed while two RAG runs matched.
+- The model does not always follow the confidence rule. High-confidence predictions are counted and flagged in the comparison, not corrected.

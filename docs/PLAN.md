@@ -61,12 +61,12 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## Milestone 3 — Report generation and A/B comparison
 
-- [ ] Define the report schema: themes, supporting discussions, prior-week summary, next-week predictions, limitations.
-- [ ] Implement baseline generation without retrieved community posts.
-- [ ] Implement RAG generation using retrieved passages with traceable source IDs/URLs.
-- [ ] Keep model, instructions, generation settings, and report time window consistent across both variants.
-- [ ] Store generated report, retrieval metadata, and run configuration for repeatability.
-- [ ] Add simple qualitative comparison: relevance, factual grounding, citations, unsupported claims.
+- [x] Define the report schema: themes, supporting discussions, prior-week summary, next-week predictions, limitations.
+- [x] Implement baseline generation without retrieved community posts.
+- [x] Implement RAG generation using retrieved passages with traceable source IDs/URLs.
+- [x] Keep model, instructions, generation settings, and report time window consistent across both variants.
+- [x] Store generated report, retrieval metadata, and run configuration for repeatability.
+- [x] Add simple qualitative comparison: relevance, factual grounding, citations, unsupported claims. _Automatic text checks, not a judged score (D-011)._
 
 **Done when:** the app shows meaningful differences attributable to retrieved evidence; the RAG output does not claim unsupported certainty about future trends.
 
@@ -110,6 +110,5 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## Open questions
 
-- How should long discussions be selected or summarized within context limits?
-- Does `llama3.1:8b` produce good enough reports, or should we switch to `qwen3:8b` (D-007)?
-- Which exact comparison criteria are easiest for a reviewer to see?
+- Does `llama3.1:8b` produce good enough reports, or should we switch to `qwen3:8b` (D-007)? Its reports are usable but it sometimes ignores the confidence rule and its predictions mostly restate the week's themes.
+- Should predictions that claim high confidence without a source be downgraded automatically, or only flagged as they are now (D-011)?

@@ -1,14 +1,17 @@
 import { serve } from '@hono/node-server';
 import { ConfigError, loadConfig, loadEnvFile } from '../config/config';
 import { runIngestion } from '../ingestion/ingestService';
+import { createOllamaGenerator } from '../ollama/chat';
 import { createOllamaEmbedder } from '../ollama/embeddings';
 import { checkOllama } from '../ollama/ollamaStatus';
+import { generateReportRun } from '../reports/reportService';
 import { retrieveDiscussions } from '../retrieval/retrieval';
 import { LOOPBACK_HOST, SHUTDOWN_MESSAGE } from '../shared/processProtocol';
 import { LemmyClient } from '../sources/lemmy/lemmyClient';
 import { LemmySource } from '../sources/lemmy/lemmySource';
 import { checkDatabase, openDatabase } from '../storage/database';
 import { getDataStatus } from '../storage/discussionStore';
+import { getLatestReportRun } from '../storage/reportStore';
 import { createApp } from './app';
 
 function start(): void {
@@ -18,6 +21,7 @@ function start(): void {
 
   const db = openDatabase(config.databasePath);
   const embedder = createOllamaEmbedder(config.ollama);
+  const generator = createOllamaGenerator(config.ollama);
   const source = new LemmySource(new LemmyClient(config.source), config.source);
 
   const app = createApp({
@@ -27,6 +31,17 @@ function start(): void {
     getDataStatus: () => getDataStatus(db, community, embedder.model),
     ingest: () => runIngestion({ db, source, embedder, community }),
     search: (query, topK) => retrieveDiscussions({ db, embedder, community }, { query, topK }),
+    generateReports: (onStep) =>
+      generateReportRun({
+        db,
+        embedder,
+        generator,
+        community,
+        communityUrl: `${config.source.instanceUrl}/c/${community}`,
+        numCtx: config.ollama.numCtx,
+        onStep,
+      }),
+    getLatestReport: () => getLatestReportRun(db, community),
   });
 
   const server = serve({ fetch: app.fetch, port: config.apiPort, hostname: LOOPBACK_HOST }, (info) => {

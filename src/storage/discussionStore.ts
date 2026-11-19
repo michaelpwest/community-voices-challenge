@@ -203,6 +203,45 @@ export function searchByVector(db: DatabaseSync, search: VectorSearch): Retrieve
   }));
 }
 
+function selectDiscussions(db: DatabaseSync, whereAndOrder: string, ...params: Array<string | number>): Discussion[] {
+  const rows = db.prepare(`SELECT ${DISCUSSION_COLUMNS} FROM discussions d ${whereAndOrder}`).all(...params);
+  return rows.map((row) => toDiscussion(discussionRowSchema.parse(row)));
+}
+
+/** Every stored discussion of a community posted inside the window, newest first. */
+export function listDiscussionsInWindow(db: DatabaseSync, community: string, window: TimeWindow): Discussion[] {
+  return selectDiscussions(
+    db,
+    'WHERE d.community = ? AND d.posted_at >= ? AND d.posted_at < ? ORDER BY d.posted_at DESC, d.id ASC',
+    community,
+    window.start.toISOString(),
+    window.end.toISOString(),
+  );
+}
+
+/** The highest-scored posts of a community inside the window. */
+export function listTopPosts(db: DatabaseSync, community: string, window: TimeWindow, limit: number): Discussion[] {
+  return selectDiscussions(
+    db,
+    `WHERE d.kind = 'post' AND d.community = ? AND d.posted_at >= ? AND d.posted_at < ?
+     ORDER BY d.score DESC, d.id ASC LIMIT ?`,
+    community,
+    window.start.toISOString(),
+    window.end.toISOString(),
+    limit,
+  );
+}
+
+/** The highest-scored stored comments on one post. */
+export function listTopComments(db: DatabaseSync, postId: string, limit: number): Discussion[] {
+  return selectDiscussions(
+    db,
+    `WHERE d.kind = 'comment' AND d.post_id = ? ORDER BY d.score DESC, d.id ASC LIMIT ?`,
+    postId,
+    limit,
+  );
+}
+
 export function recordIngestionRun(db: DatabaseSync, summary: IngestSummary): void {
   db.prepare('INSERT INTO ingestion_runs (finished_at, summary) VALUES (?, ?)').run(
     summary.finishedAt,

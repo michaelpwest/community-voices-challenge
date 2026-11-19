@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loadConfig } from '../config/config';
+import { GenerationError } from '../ollama/chat';
 import { EmbeddingError } from '../ollama/embeddings';
+import { NoDataError } from '../reports/reportService';
 import type { DataStatus, IngestSummary, SearchResponse } from '../shared/discussions';
 import type { DatabaseStatus, HealthResponse, OllamaStatus } from '../shared/health';
+import type { ReportJobStatus, ReportRun } from '../shared/reports';
 import { SourceError } from '../sources/discussionSource';
 import { createApp, type AppDependencies } from './app';
 
@@ -42,6 +45,9 @@ function ollamaStatus(overrides: Partial<OllamaStatus> = {}): OllamaStatus {
   };
 }
 
+// Only the fields the routes pass through matter here; report content is tested in src/reports.
+const reportRun = { id: 7, community: 'games' } as ReportRun;
+
 async function emptySearch(query: string): Promise<SearchResponse> {
   return {
     query,
@@ -60,8 +66,17 @@ function appWith(overrides: Partial<AppDependencies> = {}) {
     getDataStatus: () => emptyData,
     ingest: async () => summary,
     search: emptySearch,
+    generateReports: async () => reportRun,
+    getLatestReport: () => null,
     ...overrides,
   });
+}
+
+/** Waits for work started by a request to finish (the report job runs in the background). */
+const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
+async function reportStatus(app: ReturnType<typeof appWith>): Promise<ReportJobStatus> {
+  return (await (await app.request('/api/reports/status')).json()) as ReportJobStatus;
 }
 
 async function health(overrides: Partial<AppDependencies> = {}): Promise<HealthResponse> {
@@ -198,6 +213,100 @@ describe('GET /api/search', () => {
     const response = await appWith({ search }).request('/api/search?q=delay');
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ error: { code: 'ollama_unavailable' } });
+  });
+});
+
+describe('report routes', () => {
+  it('starts idle', async () => {
+    expect(await reportStatus(appWith())).toEqual({
+      state: 'idle',
+      step: null,
+      startedAt: null,
+      finishedAt: null,
+      error: null,
+    });
+  });
+
+  it('starts generation in the background and reports progress, then success', async () => {
+    let finish: (run: ReportRun) => void = () => undefined;
+    let reportStep: (step: string) => void = () => undefined;
+    const generateReports = vi.fn((onStep: (step: string) => void) => {
+      reportStep = onStep;
+      return new Promise<ReportRun>((resolve) => (finish = resolve));
+    });
+    const app = appWith({ generateReports });
+
+    const started = await app.request('/api/reports/generate', { method: 'POST' });
+    expect(started.status).toBe(202);
+    expect(await started.json()).toMatchObject({ state: 'running', error: null });
+
+    reportStep('Generating the baseline report');
+    expect(await reportStatus(app)).toMatchObject({ state: 'running', step: 'Generating the baseline report' });
+
+    finish(reportRun);
+    await settle();
+    const done = await reportStatus(app);
+    expect(done).toMatchObject({ state: 'succeeded', step: null, error: null });
+    expect(done.finishedAt).not.toBeNull();
+  });
+
+  it('refuses to start a second generation while one is running', async () => {
+    const generateReports = vi.fn(() => new Promise<ReportRun>(() => undefined));
+    const app = appWith({ generateReports });
+    await app.request('/api/reports/generate', { method: 'POST' });
+    const second = await app.request('/api/reports/generate', { method: 'POST' });
+    expect(second.status).toBe(409);
+    expect(await second.json()).toMatchObject({ error: { code: 'report_in_progress' } });
+    expect(generateReports).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['there is no data', new NoDataError(), 'Refresh the feed first'],
+    ['Ollama is unreachable', new GenerationError('Ollama is not reachable at http://localhost:11434.'), 'not reachable'],
+    ['embedding fails', new EmbeddingError('Ollama does not have the embedding model "x".'), 'embedding model'],
+  ])('reports the reason when %s', async (_label, error, expected) => {
+    const app = appWith({
+      generateReports: async () => {
+        throw error;
+      },
+    });
+    await app.request('/api/reports/generate', { method: 'POST' });
+    await settle();
+    const status = await reportStatus(app);
+    expect(status.state).toBe('failed');
+    expect(status.error).toContain(expected);
+  });
+
+  it('hides the details of an unexpected failure and allows another attempt', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const generateReports = vi
+      .fn<() => Promise<ReportRun>>()
+      .mockRejectedValueOnce(new Error('secret detail'))
+      .mockResolvedValueOnce(reportRun);
+    const app = appWith({ generateReports });
+
+    await app.request('/api/reports/generate', { method: 'POST' });
+    await settle();
+    const failed = await reportStatus(app);
+    expect(failed.state).toBe('failed');
+    expect(failed.error).not.toContain('secret detail');
+
+    expect((await app.request('/api/reports/generate', { method: 'POST' })).status).toBe(202);
+    await settle();
+    expect((await reportStatus(app)).state).toBe('succeeded');
+    logged.mockRestore();
+  });
+
+  it('returns the latest stored report run', async () => {
+    const response = await appWith({ getLatestReport: () => reportRun }).request('/api/reports/latest');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ id: 7, community: 'games' });
+  });
+
+  it('answers 404 before any report exists', async () => {
+    const response = await appWith().request('/api/reports/latest');
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: 'no_report' } });
   });
 });
 

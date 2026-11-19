@@ -7,19 +7,23 @@ import { ConfigError, loadConfig, loadEnvFile, type AppConfig } from '../config/
 import type { IngestSummary } from '../shared/discussions';
 import type { ApiErrorResponse, HealthResponse } from '../shared/health';
 import { LOOPBACK_HOST, SHUTDOWN_MESSAGE } from '../shared/processProtocol';
+import type { ReportJobStatus, ReportRun } from '../shared/reports';
 import { clearDataWithConfirmation } from './clearData';
 import { ensureOllama } from './ollamaSetup';
 import { OwnedProcesses } from './ownedProcesses';
 import { terminalPalette } from './palette';
+import { formatReportRun } from './reportSummary';
 import { selectOption, type MenuOption } from './selectMenu';
 import { formatHealth, formatIngestSummary } from './statusReport';
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const MINIMUM_NODE: readonly [number, number] = [22, 13];
 const CHILD_START_TIMEOUT_MS = 30_000;
+const REPORT_POLL_MS = 2000;
 const paint = terminalPalette;
 const MENU: MenuOption[] = [
   { key: 'r', label: 'Refresh feed' },
+  { key: 'g', label: 'Generate reports' },
   { key: 's', label: 'System status' },
   { key: 'c', label: 'Clear data' },
   { key: 'q', label: 'Quit' },
@@ -170,6 +174,36 @@ async function refreshFeed(config: AppConfig): Promise<void> {
   say(paint.warn(`Feed refresh failed (HTTP ${response.status}): ${body.error?.message ?? 'no details'}`));
 }
 
+/** Starts report generation, shows each stage as it begins, and prints the comparison when done. */
+async function generateReports(config: AppConfig): Promise<void> {
+  const started = await fetch(apiUrl(config, '/api/reports/generate'), { method: 'POST' });
+  if (!started.ok) {
+    const body = (await started.json()) as Partial<ApiErrorResponse>;
+    say(paint.warn(`Could not start report generation: ${body.error?.message ?? `HTTP ${started.status}`}`));
+    return;
+  }
+  say('Generating two reports with the local model. This can take a few minutes...');
+
+  let shownStep: string | null = null;
+  for (;;) {
+    await new Promise((resolve) => setTimeout(resolve, REPORT_POLL_MS));
+    const status = (await (await fetch(apiUrl(config, '/api/reports/status'))).json()) as ReportJobStatus;
+    if (status.step && status.step !== shownStep) {
+      shownStep = status.step;
+      say(paint.dim(`  ${status.step}...`));
+    }
+    if (status.state === 'failed') {
+      say(paint.warn(`Report generation failed: ${status.error ?? 'unknown error'}`));
+      return;
+    }
+    if (status.state !== 'running') break;
+  }
+
+  const latest = await fetch(apiUrl(config, '/api/reports/latest'));
+  formatReportRun((await latest.json()) as ReportRun, paint).forEach(say);
+  say(paint.dim(`\nFull reports, evidence, and metrics: ${apiUrl(config, '/api/reports/latest')}`));
+}
+
 async function clearData(config: AppConfig): Promise<void> {
   await clearDataWithConfirmation(
     { say, ask },
@@ -187,6 +221,7 @@ async function runMenu(config: AppConfig): Promise<void> {
     const choice = await choose(MENU);
     try {
       if (choice === 'r') await refreshFeed(config);
+      else if (choice === 'g') await generateReports(config);
       else if (choice === 's') await showStatus(config);
       else if (choice === 'c') await clearData(config);
       else if (choice === 'q') return;

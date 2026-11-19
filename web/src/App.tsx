@@ -136,7 +136,8 @@ export function App() {
       {state.phase === 'loaded' && <SystemStatus health={state.health} />}
 
       <p className="notice">
-        Report generation is not built yet. This page currently shows setup and data status only.
+        Reports can be generated from the launcher menu. Viewing the reports and their comparison on this page is not
+        built yet.
       </p>
     </main>
   );
