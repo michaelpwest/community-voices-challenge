@@ -32,6 +32,17 @@ export function formatShare(part: number, total: number): string {
   return total === 0 ? 'None' : `${part} of ${total}`;
 }
 
+/** A share from 0 to 1 as a whole percentage, e.g. "12%". */
+export function formatPercent(share: number): string {
+  return `${Math.round(share * 100)}%`;
+}
+
+/** "never", "once", or "3 times". */
+export function formatTimes(count: number): string {
+  if (count === 0) return 'never';
+  return count === 1 ? 'once' : `${count} times`;
+}
+
 /** Why a passage was included in the evidence, in plain words. */
 export function describeSelection(selectedBy: EvidenceSelection[]): string {
   const reasons = selectedBy.map((selection) =>

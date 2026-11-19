@@ -103,10 +103,15 @@ Build the smallest useful local-first application that ingests recent discussion
 - [ ] Proposed decisions D-009, D-010, and D-011 confirmed.
 - [ ] Final commit pushed and repository link sent.
 
+## Milestone 6 — Optional items from the brief
+
+- [x] Keep stats on which embeddings are retrieved most: a counter per discussion, raised each time similarity search returns it, shown as a "Most retrieved discussions" table (D-012).
+- [x] Show a flattened visualization of the embeddings: the week's embeddings projected to two dimensions and drawn as a scatter plot with hover details, a legend, and a table view (D-012).
+
+**Done when:** both are visible in the web UI after a feed refresh and a report run. _Checked in headless Edge at 1280 px and 390 px._
+
 ## Deferred
 
-- 2D embedding projection/visualization
-- Retrieval frequency counters per embedding
 - Multiple communities and advanced scheduling
 - Native mobile client
 - Authentication, deployment automation, production observability

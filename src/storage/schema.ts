@@ -32,6 +32,13 @@ const SCHEMA = `
     created_at     TEXT NOT NULL
   );
 
+  -- How often similarity search has returned each discussion's embedding.
+  CREATE TABLE IF NOT EXISTS retrieval_stats (
+    discussion_id      TEXT PRIMARY KEY REFERENCES discussions (id) ON DELETE CASCADE,
+    retrieval_count    INTEGER NOT NULL,
+    last_retrieved_at  TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS ingestion_runs (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     finished_at  TEXT NOT NULL,

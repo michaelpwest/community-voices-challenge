@@ -45,6 +45,8 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 - `GET /api/health` — status of the API, database, and Ollama dependency
 - `POST /api/ingest` — run a feed refresh and return a summary (502 if the source cannot be read, 409 if one is already running)
 - `GET /api/search?q=...&k=5` — the stored discussions most similar to a query within the past seven days, with source links
+- `GET /api/embeddings/map` — the past week's embeddings flattened to two dimensions, with each one's retrieval count
+- `GET /api/retrieval/stats?limit=10` — which discussions similarity search has returned most often
 - `POST /api/reports/generate` — start generating both report variants in the background (202; 409 if already running)
 - `GET /api/reports/status` — state of that job: idle, running (with the current step), succeeded, or failed (with the reason)
 - `GET /api/reports/latest` — the latest stored run: both reports, the evidence given to the RAG run, shared settings, and the comparison (404 before the first run)
@@ -57,9 +59,11 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 
 **ingestion_run:** finished timestamp and the run summary (window, counts, any embedding error).
 
+**retrieval_stat:** discussion ID, how many times similarity search has returned it, and when it last did (D-012).
+
 **report_run:** period start/end, model/prompt/settings, generated timestamp, baseline report, RAG report, cited source IDs, evaluation notes.
 
-All four tables are defined in `src/storage/schema.ts`. A report_run is stored as one JSON document that also holds the evidence passages (label, source URL, excerpt, and how each was selected).
+All five tables are defined in `src/storage/schema.ts`. A report_run is stored as one JSON document that also holds the evidence passages (label, source URL, excerpt, and how each was selected).
 
 ## Ingestion design
 

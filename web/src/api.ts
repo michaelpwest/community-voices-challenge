@@ -1,5 +1,6 @@
 import type { IngestSummary } from '../../src/shared/discussions';
 import type { ApiErrorResponse, HealthResponse } from '../../src/shared/health';
+import type { EmbeddingMap, RetrievalStats } from '../../src/shared/insights';
 import type { ReportJobStatus, ReportRun } from '../../src/shared/reports';
 
 /** A failed API call, with a message suitable for showing to the user. */
@@ -52,6 +53,10 @@ export const startReportGeneration = (): Promise<ReportJobStatus> =>
 
 /** Fetches and embeds the past week. Resolves when the refresh has finished. */
 export const refreshFeed = (): Promise<IngestSummary> => request('/api/ingest', { method: 'POST' });
+
+export const fetchEmbeddingMap = (): Promise<EmbeddingMap> => request('/api/embeddings/map');
+
+export const fetchRetrievalStats = (): Promise<RetrievalStats> => request('/api/retrieval/stats');
 
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

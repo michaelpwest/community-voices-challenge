@@ -9,6 +9,7 @@ import { NoDataError } from '../reports/reportService';
 import { DEFAULT_TOP_K, MAX_TOP_K } from '../retrieval/retrieval';
 import type { DataStatus, IngestSummary, SearchResponse } from '../shared/discussions';
 import type { ApiErrorResponse, DatabaseStatus, HealthResponse, OllamaStatus } from '../shared/health';
+import type { EmbeddingMap, RetrievalStats } from '../shared/insights';
 import type { ReportJobStatus, ReportRun } from '../shared/reports';
 import { SourceError } from '../sources/discussionSource';
 
@@ -22,7 +23,12 @@ export interface AppDependencies {
   /** Generates and stores the baseline and RAG reports, reporting each stage through `onStep`. */
   generateReports: (onStep: (step: string) => void) => Promise<ReportRun>;
   getLatestReport: () => ReportRun | null;
+  getEmbeddingMap: () => EmbeddingMap;
+  getRetrievalStats: (limit: number) => RetrievalStats;
 }
+
+const DEFAULT_STATS_LIMIT = 10;
+const statsQuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(50).default(DEFAULT_STATS_LIMIT) });
 
 /** Failures whose message is written for the user and safe to show. */
 const EXPECTED_REPORT_ERRORS = [NoDataError, EmbeddingError, GenerationError, ReportFormatError];
@@ -47,7 +53,7 @@ function localAddresses(ports: number[]): Set<string> {
 
 export function createApp(dependencies: AppDependencies): Hono {
   const { config, checkOllama, checkDatabase, getDataStatus, ingest, search } = dependencies;
-  const { generateReports, getLatestReport } = dependencies;
+  const { generateReports, getLatestReport, getEmbeddingMap, getRetrievalStats } = dependencies;
   const app = new Hono();
   let ingestInProgress = false;
   let reportJob: ReportJobStatus = IDLE_REPORT_JOB;
@@ -163,6 +169,16 @@ export function createApp(dependencies: AppDependencies): Hono {
   app.get('/api/reports/latest', (c) => {
     const run = getLatestReport();
     return run ? c.json(run) : c.json(errorBody('no_report', 'No report has been generated yet.'), 404);
+  });
+
+  // The past week's embeddings flattened to two dimensions for display.
+  app.get('/api/embeddings/map', (c) => c.json(getEmbeddingMap()));
+
+  // Which embeddings similarity search has returned most often.
+  app.get('/api/retrieval/stats', (c) => {
+    const parsed = statsQuerySchema.safeParse({ limit: c.req.query('limit') });
+    if (!parsed.success) return c.json(errorBody('invalid_request', 'limit must be a whole number from 1 to 50'), 400);
+    return c.json(getRetrievalStats(parsed.data.limit));
   });
 
   app.notFound((c) => c.json(errorBody('not_found', `No route for ${c.req.method} ${c.req.path}`), 404));

@@ -175,3 +175,26 @@ Chosen while building Milestone 3; confirm or change.
 - Evidence favors high-scoring threads, so the report reflects what was popular more than what was typical.
 - The fixed seed reduces but does not remove run-to-run variation; two baseline runs differed while two RAG runs matched.
 - The model does not always follow the confidence rule. High-confidence predictions are counted and flagged in the comparison, not corrected.
+
+## D-012 — Retrieval statistics and embedding map
+
+Chosen while building Milestone 6; confirm or change.
+
+**Choice:**
+- **What counts as a retrieval:** each time similarity search returns a discussion, its counter goes up by one. That covers the searches that gather report evidence and calls to the search API. Evidence chosen by score alone is not counted, because no embedding was retrieved.
+- **Where it is stored:** one row per discussion with a count and the time of the last retrieval. Counts are all-time and are removed with "Clear data".
+- **Flattening method:** principal component analysis (PCA), implemented directly with power iteration. The map's axes are the two directions along which the week's embeddings vary most.
+- **What the map shows:** one dot per embedded post or comment from the past seven days. Color separates posts from comments; a larger dot was retrieved more often. Pointing near a dot shows its title, selecting it gives its link, and the same data is available as a table.
+- **Where it is computed:** in the API on request, from the stored vectors. Nothing extra is stored.
+
+**Alternatives:**
+- t-SNE or UMAP: usually show clearer clusters, but need a library, have tuning settings, and give a different picture on each run unless seeded.
+- Coloring dots by thread: more informative in principle, but a week has about 45 threads and a scatter plot stays readable with about three colors.
+- Computing the projection in the browser: would send every 768-number vector to the page.
+
+**Why:** PCA is deterministic, has no settings, needs no dependency, and takes about 70 ms for a week of data (398 vectors of 768 numbers). The counters cost one small write per retrieved result.
+
+**Trade-off:**
+- Two axes keep only about 12% of the variation in these embeddings, so the map is a rough guide. It did separate one large topic from the rest in testing, but nearby dots are not guaranteed to be similar.
+- Counts favor whatever the five fixed evidence queries match, so they describe this app's retrieval more than the community's interests.
+- The chart's two colors were checked for color-blind separation and contrast on both the light and dark surfaces.

@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { ConfigError, loadConfig, loadEnvFile } from '../config/config';
+import { buildEmbeddingMap } from '../embeddings/embeddingMap';
 import { runIngestion } from '../ingestion/ingestService';
 import { createOllamaGenerator } from '../ollama/chat';
 import { createOllamaEmbedder } from '../ollama/embeddings';
@@ -11,6 +12,7 @@ import { LemmyClient } from '../sources/lemmy/lemmyClient';
 import { LemmySource } from '../sources/lemmy/lemmySource';
 import { checkDatabase, openDatabase } from '../storage/database';
 import { getDataStatus } from '../storage/discussionStore';
+import { getRetrievalStats } from '../storage/insightStore';
 import { getLatestReportRun } from '../storage/reportStore';
 import { createApp } from './app';
 
@@ -42,6 +44,8 @@ function start(): void {
         onStep,
       }),
     getLatestReport: () => getLatestReportRun(db, community),
+    getEmbeddingMap: () => buildEmbeddingMap({ db, community, embeddingModel: embedder.model }),
+    getRetrievalStats: (limit) => getRetrievalStats(db, community, limit),
   });
 
   const server = serve({ fetch: app.fetch, port: config.apiPort, hostname: LOOPBACK_HOST }, (info) => {

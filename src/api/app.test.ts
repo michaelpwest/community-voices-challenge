@@ -5,6 +5,7 @@ import { EmbeddingError } from '../ollama/embeddings';
 import { NoDataError } from '../reports/reportService';
 import type { DataStatus, IngestSummary, SearchResponse } from '../shared/discussions';
 import type { DatabaseStatus, HealthResponse, OllamaStatus } from '../shared/health';
+import type { EmbeddingMap, RetrievalStats } from '../shared/insights';
 import type { ReportJobStatus, ReportRun } from '../shared/reports';
 import { SourceError } from '../sources/discussionSource';
 import { createApp, type AppDependencies } from './app';
@@ -48,6 +49,16 @@ function ollamaStatus(overrides: Partial<OllamaStatus> = {}): OllamaStatus {
 // Only the fields the routes pass through matter here; report content is tested in src/reports.
 const reportRun = { id: 7, community: 'games' } as ReportRun;
 
+const embeddingMap: EmbeddingMap = {
+  embeddingModel: 'nomic-embed-text',
+  method: 'pca',
+  windowStart: summary.windowStart,
+  windowEnd: summary.windowEnd,
+  explainedVariance: [0.4, 0.2],
+  points: [],
+};
+const retrievalStats: RetrievalStats = { totalRetrievals: 0, discussionsRetrieved: 0, top: [] };
+
 async function emptySearch(query: string): Promise<SearchResponse> {
   return {
     query,
@@ -68,6 +79,8 @@ function appWith(overrides: Partial<AppDependencies> = {}) {
     search: emptySearch,
     generateReports: async () => reportRun,
     getLatestReport: () => null,
+    getEmbeddingMap: () => embeddingMap,
+    getRetrievalStats: () => retrievalStats,
     ...overrides,
   });
 }
@@ -307,6 +320,31 @@ describe('report routes', () => {
     const response = await appWith().request('/api/reports/latest');
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ error: { code: 'no_report' } });
+  });
+});
+
+describe('embedding map and retrieval statistics', () => {
+  it('returns the embedding map', async () => {
+    const response = await appWith().request('/api/embeddings/map');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(embeddingMap);
+  });
+
+  it('returns retrieval statistics with a default list length of 10', async () => {
+    const getRetrievalStats = vi.fn(() => retrievalStats);
+    const response = await appWith({ getRetrievalStats }).request('/api/retrieval/stats');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(retrievalStats);
+    expect(getRetrievalStats).toHaveBeenCalledWith(10);
+  });
+
+  it('accepts a list length and rejects one out of range', async () => {
+    const getRetrievalStats = vi.fn(() => retrievalStats);
+    const app = appWith({ getRetrievalStats });
+    await app.request('/api/retrieval/stats?limit=25');
+    expect(getRetrievalStats).toHaveBeenCalledWith(25);
+    expect((await app.request('/api/retrieval/stats?limit=0')).status).toBe(400);
+    expect((await app.request('/api/retrieval/stats?limit=500')).status).toBe(400);
   });
 });
 

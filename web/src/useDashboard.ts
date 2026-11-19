@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { IngestSummary } from '../../src/shared/discussions';
 import type { HealthResponse } from '../../src/shared/health';
+import type { EmbeddingMap, RetrievalStats } from '../../src/shared/insights';
 import type { ReportJobStatus, ReportRun } from '../../src/shared/reports';
 import {
   ApiError,
   errorMessage,
+  fetchEmbeddingMap,
   fetchHealth,
+  fetchRetrievalStats,
   fetchLatestReport,
   fetchReportStatus,
   refreshFeed as requestFeedRefresh,
@@ -31,6 +34,10 @@ export interface Dashboard {
   /** The report generation job on the server. */
   job: ReportJobStatus | null;
   feed: FeedState;
+  /** The past week's embeddings flattened to two dimensions. */
+  embeddingMap: EmbeddingMap | null;
+  /** Which embeddings similarity search has returned most often. */
+  retrieval: RetrievalStats | null;
   reload: () => void;
   refreshFeed: () => void;
   generateReports: () => void;
@@ -48,13 +55,23 @@ export function useDashboard(): Dashboard {
   const [run, setRun] = useState<ReportRun | null>(null);
   const [job, setJob] = useState<ReportJobStatus | null>(null);
   const [feed, setFeed] = useState<FeedState>({ phase: 'idle' });
+  const [embeddingMap, setEmbeddingMap] = useState<EmbeddingMap | null>(null);
+  const [retrieval, setRetrieval] = useState<RetrievalStats | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [nextHealth, nextRun, nextJob] = await Promise.all([fetchHealth(), fetchLatestReport(), fetchReportStatus()]);
+      const [nextHealth, nextRun, nextJob, nextMap, nextRetrieval] = await Promise.all([
+        fetchHealth(),
+        fetchLatestReport(),
+        fetchReportStatus(),
+        fetchEmbeddingMap(),
+        fetchRetrievalStats(),
+      ]);
       setHealth(nextHealth);
       setRun(nextRun);
       setJob(nextJob);
+      setEmbeddingMap(nextMap);
+      setRetrieval(nextRetrieval);
       setLoadError(null);
     } catch (error) {
       setLoadError(errorMessage(error));
@@ -108,5 +125,5 @@ export function useDashboard(): Dashboard {
     void load();
   }, [load]);
 
-  return { loading, loadError, health, run, job, feed, reload, refreshFeed, generateReports };
+  return { loading, loadError, health, run, job, feed, embeddingMap, retrieval, reload, refreshFeed, generateReports };
 }

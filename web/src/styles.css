@@ -21,4 +21,8 @@
   --color-ok: light-dark(#17703a, #63d28f);
   --color-warn: light-dark(#8a5a00, #f0c060);
   --color-problem: light-dark(#a8321f, #ff9a85);
+
+  /* Chart series colors. Checked for color-blind separation and contrast on both surfaces. */
+  --color-series-1: light-dark(#2a78d6, #3987e5);
+  --color-series-2: light-dark(#eb6834, #d95926);
 }

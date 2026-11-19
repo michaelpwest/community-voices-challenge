@@ -1,7 +1,9 @@
 import type { HealthResponse } from '../../src/shared/health';
 import type { ReportRun } from '../../src/shared/reports';
 import { ComparisonPanel } from './components/ComparisonPanel';
+import { EmbeddingMapPanel } from './components/EmbeddingMapPanel';
 import { EvidenceList } from './components/EvidenceList';
+import { RetrievalStatsPanel } from './components/RetrievalStatsPanel';
 import { ReportColumn } from './components/ReportColumn';
 import { StatusPanel } from './components/StatusPanel';
 import { Button, Hint, Message, Panel } from './components/ui';
@@ -72,7 +74,7 @@ function EmptyState({ health }: { health: HealthResponse }) {
 
 export function App() {
   const dashboard = useDashboard();
-  const { loading, loadError, health, run } = dashboard;
+  const { loading, loadError, health, run, embeddingMap, retrieval } = dashboard;
 
   return (
     <main className="mx-auto max-w-7xl px-4 pt-6 pb-12">
@@ -106,6 +108,15 @@ export function App() {
             <ReportView run={run} feedRefreshedAt={health.data?.lastIngestion?.finishedAt ?? null} />
           ) : (
             <EmptyState health={health} />
+          )}
+          {embeddingMap && retrieval && embeddingMap.points.length > 0 && (
+            <section aria-labelledby="retrieval-heading">
+              <h2 id="retrieval-heading" className="mt-6 mb-3 text-xl font-semibold">
+                Inside the retrieval
+              </h2>
+              <EmbeddingMapPanel map={embeddingMap} />
+              <RetrievalStatsPanel stats={retrieval} />
+            </section>
           )}
         </>
       )}

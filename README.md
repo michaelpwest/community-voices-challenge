@@ -15,6 +15,7 @@ Choose an active online community, automatically ingest its recent discussions, 
 - **Embeddings and search:** each post and comment is embedded locally and stored in SQLite; retrieval ranks them by vector similarity within the past seven days.
 - **Two reports from the same local model:** identical instructions and settings; only the retrieved evidence differs.
 - **Web UI:** both reports side by side, clickable source links, a comparison table, and the evidence that was retrieved. It works at phone width.
+- **Inside the retrieval:** a map of the week's embeddings flattened to two dimensions, and a table of the discussions that similarity search returns most often.
 
 Everything runs on your machine. The only network traffic is downloading the models once and reading the community feed from lemmy.world.
 
@@ -69,6 +70,8 @@ Everything runs on your machine. The only network traffic is downloading the mod
    - **Source links** under each RAG theme and prediction, opening the original post or comment on lemmy.world.
    - **How the two reports compare**, a table of the same automatic checks applied to both.
    - **Evidence** given to the retrieval run and the **settings** shared by both runs, in two expandable sections.
+   - **Map of this week's embeddings**, a scatter plot in which each dot is a post or comment and nearby dots tend to be about similar things. Point at a dot to see what it is; a larger dot was retrieved more often.
+   - **Most retrieved discussions**, counted each time similarity search returns one.
 
 In testing, the RAG report covered that week's actual threads and cited them, while the baseline described plausible topics that the community had not discussed. Your results will differ in detail: the community changes daily, and the model's output varies slightly between runs even with a fixed seed.
 
@@ -79,6 +82,7 @@ The same actions are available without the browser:
 - `curl -X POST http://localhost:3001/api/reports/generate` starts report generation; `http://localhost:3001/api/reports/status` shows its progress.
 - `http://localhost:3001/api/reports/latest` returns the latest run as JSON, including the evidence and the metrics.
 - `http://localhost:3001/api/search?q=studio+layoffs&k=5` tries retrieval on its own.
+- `http://localhost:3001/api/retrieval/stats` and `http://localhost:3001/api/embeddings/map` return the retrieval counts and the map data.
 
 ## How it works
 
@@ -102,6 +106,13 @@ The full rules and their trade-offs are in decision D-010 in the [decision log](
 - **Comparison metrics are rough:** they count citations and check whether the names and numbers in each report appear in the week's stored discussions. They indicate grounding; they do not grade writing quality.
 
 Details and trade-offs are in decision D-011 in the [decision log](docs/DECISIONS.md).
+
+### The embedding map and retrieval counts
+
+- **Map:** each embedding has 768 numbers. Principal component analysis reduces them to the two directions along which the week's embeddings differ most, which become the map's axes. Two axes keep only about 12% of that variation, so the map is a rough guide to what is similar, not an exact one.
+- **Counts:** every time similarity search returns a discussion, its counter goes up by one. Report generation runs five searches, and each call to the search API counts too.
+
+Details are in decision D-012 in the [decision log](docs/DECISIONS.md).
 
 ## Configuration
 
@@ -157,7 +168,7 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 
 ## Tests
 
-`npm test` runs about 260 tests with no network and no Ollama. They cover normalization and deduplication, pagination and comment selection, retries and rate limiting, embeddings, retrieval with the date window, prompt construction, validation of model output, citation checking, the comparison metrics, the API routes, and the launcher (including a test that starts and stops the real launcher).
+`npm test` runs about 290 tests with no network and no Ollama. They cover normalization and deduplication, pagination and comment selection, retries and rate limiting, embeddings, retrieval with the date window, retrieval counting, the two-dimensional projection, prompt construction, validation of model output, citation checking, the comparison metrics, the API routes, and the launcher (including a test that starts and stops the real launcher).
 
 The tests use a small, hand-written, synthetic fixture in `src/sources/lemmy/fixtures/`. It is never loaded into the app's database.
 
@@ -168,7 +179,8 @@ The tests use a small, hand-written, synthetic fixture in `src/sources/lemmy/fix
 | Lemmy client, normalization, and ingestion rules | `src/sources/lemmy/`, `src/ingestion/` |
 | Storage, deduplication, and vector search | `src/storage/` |
 | Embeddings and model calls | `src/ollama/` |
-| Retrieval | `src/retrieval/` |
+| Retrieval and retrieval counting | `src/retrieval/`, `src/storage/insightStore.ts` |
+| Flattening embeddings to two dimensions | `src/embeddings/` |
 | Evidence selection, prompt, citation checks, comparison | `src/reports/` |
 | API routes | `src/api/` |
 | Launcher | `src/launcher/` |
