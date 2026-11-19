@@ -38,6 +38,13 @@ function errorBody(code: string, message: string): ApiErrorResponse {
   return { error: { code, message } };
 }
 
+const LOOPBACK_NAMES = ['localhost', '127.0.0.1', '[::1]'];
+
+/** The `host:port` values under which this computer's own browser and tools reach the app. */
+function localAddresses(ports: number[]): Set<string> {
+  return new Set(LOOPBACK_NAMES.flatMap((name) => ports.map((port) => `${name}:${port}`)));
+}
+
 export function createApp(dependencies: AppDependencies): Hono {
   const { config, checkOllama, checkDatabase, getDataStatus, ingest, search } = dependencies;
   const { generateReports, getLatestReport } = dependencies;
@@ -74,6 +81,21 @@ export function createApp(dependencies: AppDependencies): Hono {
     }
   }
 
+  // The API has no login, so it must not be drivable by other websites open in
+  // the same browser. A page on another site sends its own Origin, and a
+  // DNS-rebinding page sends its own Host; both are refused. Requests from the
+  // web UI (through its proxy), the launcher, and tools like curl pass.
+  const allowedAddresses = localAddresses([config.apiPort, config.webPort]);
+  const isLocal = (address: string | undefined): boolean =>
+    address === undefined || allowedAddresses.has(address.toLowerCase());
+  app.use('/api/*', async (c, next) => {
+    const origin = c.req.header('origin');
+    if (!isLocal(c.req.header('host')) || !isLocal(origin?.replace(/^http:\/\//, ''))) {
+      return c.json(errorBody('forbidden', 'This API only accepts requests made from this computer.'), 403);
+    }
+    await next();
+  });
+
   app.get('/api/health', async (c) => {
     const database = checkDatabase();
     const ollama = await checkOllama();
@@ -92,6 +114,10 @@ export function createApp(dependencies: AppDependencies): Hono {
   app.post('/api/ingest', async (c) => {
     if (ingestInProgress) {
       return c.json(errorBody('ingest_in_progress', 'A feed refresh is already running. Try again when it finishes.'), 409);
+    }
+    // A report reads the stored week while it runs, so the data must not change underneath it.
+    if (reportJob.state === 'running') {
+      return c.json(errorBody('report_in_progress', 'Reports are being generated. Refresh the feed when that finishes.'), 409);
     }
     ingestInProgress = true;
     try {
@@ -122,6 +148,9 @@ export function createApp(dependencies: AppDependencies): Hono {
   app.post('/api/reports/generate', (c) => {
     if (reportJob.state === 'running') {
       return c.json(errorBody('report_in_progress', 'Reports are already being generated.'), 409);
+    }
+    if (ingestInProgress) {
+      return c.json(errorBody('ingest_in_progress', 'A feed refresh is running. Generate reports when it finishes.'), 409);
     }
     const startedAt = new Date().toISOString();
     reportJob = { state: 'running', step: 'Starting', startedAt, finishedAt: null, error: null };

@@ -310,6 +310,60 @@ describe('report routes', () => {
   });
 });
 
+describe('feed refresh and report generation', () => {
+  it('do not run at the same time', async () => {
+    let finishIngest: (value: IngestSummary) => void = () => undefined;
+    const ingest = () => new Promise<IngestSummary>((resolve) => (finishIngest = resolve));
+    const generateReports = vi.fn(() => new Promise<ReportRun>(() => undefined));
+    const app = appWith({ ingest, generateReports });
+
+    const refreshing = app.request('/api/ingest', { method: 'POST' });
+    const blockedReport = await app.request('/api/reports/generate', { method: 'POST' });
+    expect(blockedReport.status).toBe(409);
+    expect(await blockedReport.json()).toMatchObject({ error: { code: 'ingest_in_progress' } });
+    expect(generateReports).not.toHaveBeenCalled();
+
+    finishIngest(summary);
+    expect((await refreshing).status).toBe(200);
+
+    expect((await app.request('/api/reports/generate', { method: 'POST' })).status).toBe(202);
+    const blockedRefresh = await app.request('/api/ingest', { method: 'POST' });
+    expect(blockedRefresh.status).toBe(409);
+    expect(await blockedRefresh.json()).toMatchObject({ error: { code: 'report_in_progress' } });
+  });
+});
+
+describe('requests from other websites', () => {
+  const post = (headers: Record<string, string>) => appWith().request('/api/ingest', { method: 'POST', headers });
+
+  it.each([
+    ['the web UI through its proxy', { host: 'localhost:3000', origin: 'http://localhost:3000' }],
+    ['the web UI opened by IP address', { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000' }],
+    ['a command-line tool calling the API directly', { host: 'localhost:3001' }],
+    ['the launcher', { host: '127.0.0.1:3001' }],
+  ])('accepts %s', async (_label, headers) => {
+    expect((await post(headers)).status).toBe(200);
+  });
+
+  it.each([
+    ['a page on another site', { host: 'localhost:3001', origin: 'https://example.com' }],
+    ['a page on another local port', { host: 'localhost:3001', origin: 'http://localhost:8080' }],
+    ['a sandboxed page', { host: 'localhost:3001', origin: 'null' }],
+    ['a DNS-rebinding page', { host: 'attacker.example:3001' }],
+  ])('refuses %s', async (_label, headers) => {
+    const ingest = vi.fn(async () => summary);
+    const response = await appWith({ ingest }).request('/api/ingest', { method: 'POST', headers });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { code: 'forbidden' } });
+    expect(ingest).not.toHaveBeenCalled();
+  });
+
+  it('applies to read requests as well', async () => {
+    const response = await appWith().request('/api/reports/latest', { headers: { host: 'attacker.example' } });
+    expect(response.status).toBe(403);
+  });
+});
+
 describe('other routes', () => {
   it('answers unknown routes with a JSON 404', async () => {
     const response = await appWith().request('/api/nope');

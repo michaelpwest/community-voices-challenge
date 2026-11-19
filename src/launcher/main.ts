@@ -31,6 +31,8 @@ const MENU: MenuOption[] = [
 
 type ChildName = 'api' | 'web';
 const CHILD_ENTRY: Record<ChildName, string> = { api: 'src/api/main.ts', web: 'web/server.ts' };
+// Runs TypeScript directly, and hides Node 22's notice that its built-in SQLite is still experimental.
+const NODE_FLAGS = ['--disable-warning=ExperimentalWarning', '--import', 'tsx'];
 
 const owned = new OwnedProcesses();
 let activePrompt: Interface | undefined;
@@ -111,7 +113,7 @@ function echoOutput(name: string, child: ChildProcess): void {
 }
 
 function startChild(name: ChildName, config: AppConfig): void {
-  const child = spawn(process.execPath, ['--import', 'tsx', CHILD_ENTRY[name]], {
+  const child = spawn(process.execPath, [...NODE_FLAGS, CHILD_ENTRY[name]], {
     cwd: REPO_ROOT,
     // Values chosen in this session (such as a different Ollama URL) override .env in the child.
     env: {

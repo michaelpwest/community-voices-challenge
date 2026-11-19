@@ -1,6 +1,6 @@
 # Community Voices — Decision Log
 
-Record meaningful decisions briefly, with the alternatives, rationale, and trade-offs. Entries marked **proposed** should be confirmed before implementation.
+Record meaningful decisions briefly, with the alternatives, rationale, and trade-offs.
 
 ## D-001 — Local-first AI
 
@@ -46,7 +46,7 @@ Record meaningful decisions briefly, with the alternatives, rationale, and trade
 
 **Choice:** Ingest posts and comments from the `games` community on lemmy.world (`https://lemmy.world/c/games`) through Lemmy's public JSON API (`/api/v3/post/list`, `/api/v3/comment/list`). No account or API key is required.
 
-**Why:** Open, permitted API that a reviewer can use from a fresh clone; a full week can be fetched on demand. Activity measured on for the prior 7 days: 47 posts, 1,439 comments, 31 distinct posters. Topics follow release and event calendars, so predictions have something concrete to draw from.
+**Why:** Open, permitted API that a reviewer can use from a fresh clone; a full week can be fetched on demand. Activity measured over the 7 days before this decision: 47 posts, 1,439 comments, 31 distinct posters. Topics follow release and event calendars, so predictions have something concrete to draw from.
 
 **Trade-off:**
 - Comment volume exceeds a small local model's context, so comments must be selected (e.g. top-scored per post) and retrieved rather than passed whole.
@@ -94,7 +94,7 @@ Record meaningful decisions briefly, with the alternatives, rationale, and trade
 
 **Trade-off:** Data is only as fresh as the last manual refresh; the UI must show the last ingestion time. Scheduling stays on the deferred list.
 
-## D-009 — Application tooling (proposed)
+## D-009 — Application tooling
 
 Chosen while building Milestone 1; confirm or change.
 
@@ -117,9 +117,10 @@ Chosen while building Milestone 1; confirm or change.
 **Trade-off:**
 - Requires Node.js 22.13 or newer for `node:sqlite` extension loading; the launcher checks this.
 - The demo runs on the Vite dev server, which is fine locally but is not a production setup.
-- Loading sqlite-vec through `node:sqlite` is verified on Windows x64 with Node 26 only; macOS and Linux are untested.
+- Loading sqlite-vec through `node:sqlite` is verified on Windows x64 (Node 26) and Linux x64 (Ubuntu 22.04, Node 22); macOS is untested.
+- On Node 22, `node:sqlite` prints an "experimental" warning. The launcher and `npm run api` suppress it.
 
-## D-010 — Ingestion and retrieval rules (proposed)
+## D-010 — Ingestion and retrieval rules
 
 Chosen while building Milestone 2; confirm or change.
 
@@ -147,7 +148,7 @@ Chosen while building Milestone 2; confirm or change.
 - Score-based selection favors early and popular comments; a late but important reply can be missed.
 - Exact search would slow down with hundreds of thousands of vectors, far beyond one community's week.
 
-## D-011 — Report generation and comparison (proposed)
+## D-011 — Report generation and comparison
 
 Chosen while building Milestone 3; confirm or change.
 

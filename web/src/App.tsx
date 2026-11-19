@@ -8,11 +8,12 @@ import { Button, Hint, Message, Panel } from './components/ui';
 import { formatDateTime, formatPeriod, indexEvidence } from './format';
 import { useDashboard } from './useDashboard';
 
-function ReportView({ run }: { run: ReportRun }) {
+function ReportView({ run, feedRefreshedAt }: { run: ReportRun; feedRefreshedAt: string | null }) {
   const evidenceByLabel = indexEvidence(run.evidence);
+  const olderThanFeed = feedRefreshedAt !== null && Date.parse(feedRefreshedAt) > Date.parse(run.generatedAt);
   return (
     <section aria-labelledby="report-heading">
-      <header className="mt-6 mb-3">
+      <header className="mt-6">
         <h2 id="report-heading" className="text-xl font-semibold">
           Weekly report: {formatPeriod(run.windowStart, run.windowEnd)}
         </h2>
@@ -22,6 +23,12 @@ function ReportView({ run }: { run: ReportRun }) {
         </Hint>
       </header>
 
+      {olderThanFeed && (
+        <Message tone="notice">
+          The feed has been refreshed since this report was written. Choose Generate reports to include the newest
+          discussions.
+        </Message>
+      )}
       {run.warnings.map((warning) => (
         <Message key={warning} tone="problem">
           {warning}
@@ -29,7 +36,7 @@ function ReportView({ run }: { run: ReportRun }) {
       ))}
 
       {/* Side by side on wide screens, stacked on phones. */}
-      <div className="mb-4 grid items-start gap-4 lg:grid-cols-2">
+      <div className="mt-3 mb-4 grid items-start gap-4 lg:grid-cols-2">
         <ReportColumn variant={run.rag} evidenceByLabel={evidenceByLabel} evidenceCount={run.evidence.length} />
         <ReportColumn variant={run.baseline} evidenceByLabel={evidenceByLabel} evidenceCount={0} />
       </div>
@@ -95,7 +102,11 @@ export function App() {
             onRefreshFeed={dashboard.refreshFeed}
             onGenerateReports={dashboard.generateReports}
           />
-          {run ? <ReportView run={run} /> : <EmptyState health={health} />}
+          {run ? (
+            <ReportView run={run} feedRefreshedAt={health.data?.lastIngestion?.finishedAt ?? null} />
+          ) : (
+            <EmptyState health={health} />
+          )}
         </>
       )}
     </main>

@@ -20,6 +20,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 const MESSAGE_TONE = {
   busy: 'border-l-accent',
   ok: 'border-l-ok',
+  notice: 'border-l-warn',
   problem: 'border-l-problem text-problem',
 };
 

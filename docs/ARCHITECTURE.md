@@ -93,6 +93,8 @@ Use the **same model**, report period, instruction template, and temperature/set
 - Ollama: configurable URL, default `http://localhost:11434`; models `llama3.1:8b` (generation, explicit `num_ctx`) and `nomic-embed-text` (embeddings, with `search_document:`/`search_query:` prefixes) per D-007
 - Database: local SQLite file with the sqlite-vec extension; no separate server
 - `npm start` orchestrates checks and starts only the processes it owns; the CLI can trigger ingestion and graceful exit.
+- The API has no login, so it accepts requests only when the `Host` and `Origin` headers name this computer's own API or web port. That keeps other websites open in the same browser from triggering refreshes or reading data.
+- A feed refresh and a report generation never run at the same time; the second request is refused with 409.
 - The launcher asks its child processes to stop over a Node IPC channel. The API and web processes also stop on their own if the launcher disappears, so a killed launcher does not leave them running.
 
 ## Known risks

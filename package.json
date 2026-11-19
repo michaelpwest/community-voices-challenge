@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node --import tsx src/launcher/main.ts",
-    "api": "node --import tsx src/api/main.ts",
+    "api": "node --disable-warning=ExperimentalWarning --import tsx src/api/main.ts",
     "web": "node --import tsx web/server.ts",
     "test": "vitest run",
     "lint": "eslint .",

@@ -27,14 +27,14 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## MVP acceptance criteria
 
-- [ ] A repeatable command/API operation ingests recent community discussions and prevents duplicates.
-- [ ] Documents include source URL, author/identifier when permitted, posted timestamp, and content.
-- [ ] The system generates and persists embeddings and can retrieve top-k relevant discussions using vector similarity, with a recent-date filter.
-- [ ] RAG generation uses retrieved evidence, produces a past-week summary and next-week predictions, and cites source posts.
-- [ ] Baseline generation uses the **same LLM, task prompt, time range, and sampling settings** without retrieved community evidence.
-- [ ] Comparison UI shows both outputs and a short evidence-based evaluation (specificity, citations, unsupported claims).
-- [ ] All app components can be launched and stopped locally, with useful errors for missing services.
-- [ ] Setup, limitations, and tests are documented and verified.
+- [x] A repeatable command/API operation ingests recent community discussions and prevents duplicates.
+- [x] Documents include source URL, author/identifier when permitted, posted timestamp, and content.
+- [x] The system generates and persists embeddings and can retrieve top-k relevant discussions using vector similarity, with a recent-date filter.
+- [x] RAG generation uses retrieved evidence, produces a past-week summary and next-week predictions, and cites source posts.
+- [x] Baseline generation uses the **same LLM, task prompt, time range, and sampling settings** without retrieved community evidence.
+- [x] Comparison UI shows both outputs and a short evidence-based evaluation (specificity, citations, unsupported claims).
+- [x] All app components can be launched and stopped locally, with useful errors for missing services.
+- [x] Setup, limitations, and tests are documented and verified.
 
 ## Milestone 1 — Minimal foundation
 
@@ -82,14 +82,26 @@ Build the smallest useful local-first application that ingests recent discussion
 
 ## Milestone 5 — Verification and submission
 
-- [ ] Unit tests for normalization/deduplication, retrieval/date filtering, prompt construction, and response validation, using the offline fixture (D-004).
-- [ ] Verify a complete run using live data.
-- [ ] Review code for compact functions, clear names, error handling, and unnecessary complexity.
-- [ ] Update README with **actual** prerequisite and startup commands.
-- [ ] Check security and licensing constraints; ensure `.env` is excluded.
-- [ ] Commit meaningful working increments and send public repo as submission.
+- [x] Unit tests for normalization/deduplication, retrieval/date filtering, prompt construction, and response validation, using the offline fixture (D-004).
+- [x] Verify a complete run using live data. _From a clean copy on Windows: `npm install`, `npm start`, then refresh and generate through the browser._
+- [x] Review code for compact functions, clear names, error handling, and unnecessary complexity. _No unused code or leftover markers found. Fixes: refresh and report generation can no longer overlap; the page notes when a report is older than the data._
+- [x] Update README with **actual** prerequisite and startup commands.
+- [x] Check security and licensing constraints; ensure `.env` is excluded. _No secrets tracked, `npm audit` clean, dependencies under permissive licenses. Added: the API refuses requests from other websites. Open: the repository has no license file._
+- [ ] Commit meaningful working increments and send public repo as submission. _Milestones 1 to 4 are committed and pushed; Milestone 5 changes and the submission itself remain._
 
 **Done when:** the README works from a clean clone and explains exactly how to reproduce the A/B comparison.
+
+### Submission checklist
+
+- [x] Clone-tested: a fresh clone of the public repository installs and passes all tests on Windows and on Ubuntu 22.04.
+- [x] No committed credentials or personal data. The test fixture is synthetic.
+- [x] `npm start` and the README steps verified on Windows 11. On Ubuntu, startup and shutdown were verified without Ollama. macOS is untested.
+- [x] Live ingestion works, and feed failures produce clear errors.
+- [x] Baseline/RAG reports and comparison can be reproduced.
+- [x] Tests run successfully.
+- [ ] Interactive launcher menu and Ctrl+C confirmed in a real terminal (see Milestone 1).
+- [ ] Proposed decisions D-009, D-010, and D-011 confirmed.
+- [ ] Final commit pushed and repository link sent.
 
 ## Deferred
 
