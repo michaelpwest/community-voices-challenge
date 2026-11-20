@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { IngestSummary } from '../../src/shared/discussions';
+import type { ClearSummary, IngestSummary } from '../../src/shared/discussions';
 import type { HealthResponse } from '../../src/shared/health';
 import type { EmbeddingMap, RetrievalStats } from '../../src/shared/insights';
 import type { ReportJobStatus, ReportRun } from '../../src/shared/reports';
 import {
   ApiError,
+  clearData as requestClearData,
   errorMessage,
   fetchEmbeddingMap,
   fetchHealth,
@@ -23,6 +24,12 @@ export type FeedState =
   | { phase: 'done'; summary: IngestSummary }
   | { phase: 'error'; message: string };
 
+export type ClearState =
+  | { phase: 'idle' }
+  | { phase: 'running' }
+  | { phase: 'done'; summary: ClearSummary }
+  | { phase: 'error'; message: string };
+
 export interface Dashboard {
   /** True until the first load attempt has finished. */
   loading: boolean;
@@ -34,6 +41,7 @@ export interface Dashboard {
   /** The report generation job on the server. */
   job: ReportJobStatus | null;
   feed: FeedState;
+  clear: ClearState;
   /** The past week's embeddings flattened to two dimensions. */
   embeddingMap: EmbeddingMap | null;
   /** Which embeddings similarity search has returned most often. */
@@ -41,13 +49,15 @@ export interface Dashboard {
   reload: () => void;
   refreshFeed: () => void;
   generateReports: () => void;
+  /** Deletes all stored data. The typed confirmation is checked again by the API. */
+  clearData: (confirmation: string) => void;
 }
 
 function failedJob(message: string): ReportJobStatus {
   return { state: 'failed', step: null, startedAt: null, finishedAt: new Date().toISOString(), error: message };
 }
 
-/** Loads everything the page shows and exposes the two actions a reviewer can take. */
+/** Loads everything the page shows and exposes the actions a reviewer can take. */
 export function useDashboard(): Dashboard {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -55,6 +65,7 @@ export function useDashboard(): Dashboard {
   const [run, setRun] = useState<ReportRun | null>(null);
   const [job, setJob] = useState<ReportJobStatus | null>(null);
   const [feed, setFeed] = useState<FeedState>({ phase: 'idle' });
+  const [clear, setClear] = useState<ClearState>({ phase: 'idle' });
   const [embeddingMap, setEmbeddingMap] = useState<EmbeddingMap | null>(null);
   const [retrieval, setRetrieval] = useState<RetrievalStats | null>(null);
 
@@ -101,6 +112,7 @@ export function useDashboard(): Dashboard {
   }, [generating, load]);
 
   const generateReports = useCallback(() => {
+    setClear({ phase: 'idle' });
     startReportGeneration()
       .then(setJob)
       .catch((error: unknown) => {
@@ -111,6 +123,7 @@ export function useDashboard(): Dashboard {
   }, [load]);
 
   const refreshFeed = useCallback(() => {
+    setClear({ phase: 'idle' });
     setFeed({ phase: 'running' });
     requestFeedRefresh()
       .then(async (summary) => {
@@ -120,10 +133,38 @@ export function useDashboard(): Dashboard {
       .catch((error: unknown) => setFeed({ phase: 'error', message: errorMessage(error) }));
   }, [load]);
 
+  const clearData = useCallback(
+    (confirmation: string) => {
+      setClear({ phase: 'running' });
+      requestClearData(confirmation)
+        .then(async (summary) => {
+          setClear({ phase: 'done', summary });
+          setFeed({ phase: 'idle' });
+          await load();
+        })
+        .catch((error: unknown) => setClear({ phase: 'error', message: errorMessage(error) }));
+    },
+    [load],
+  );
+
   const reload = useCallback(() => {
     setLoading(true);
     void load();
   }, [load]);
 
-  return { loading, loadError, health, run, job, feed, embeddingMap, retrieval, reload, refreshFeed, generateReports };
+  return {
+    loading,
+    loadError,
+    health,
+    run,
+    job,
+    feed,
+    clear,
+    embeddingMap,
+    retrieval,
+    reload,
+    refreshFeed,
+    generateReports,
+    clearData,
+  };
 }

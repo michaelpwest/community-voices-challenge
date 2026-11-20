@@ -32,19 +32,20 @@ A local-first, responsive web app consumes a TypeScript backend API. The backend
 
 | Component | Responsibility |
 | --- | --- |
-| Launcher | Dependency checks, Ollama URL configuration, child-process lifecycle, optional manual actions |
+| Launcher | Dependency checks, guided Ollama setup, child-process lifecycle, and opening the web UI in the browser. It has no menu; all actions are in the web UI (D-013). |
 | Ingestion service | Fetch permitted posts, normalize, deduplicate, paginate, record provenance |
 | Embedding service | Call local Ollama embeddings endpoint and persist embedding metadata |
 | Vector storage | Store posts/chunks and search vectors with recency restrictions |
 | Report service | Build prompts and generate baseline/RAG reports with the same LLM |
 | API | Health, ingestion trigger, latest reports, report generation, comparisons |
-| Web UI | Responsive display of reports, supporting links, comparison, and status; buttons to refresh the feed and generate reports. It polls the report job while one is running, including one started from the launcher. |
+| Web UI | Responsive display of reports, supporting links, comparison, and status; buttons to refresh the feed, generate reports, and clear all data after a typed confirmation. It polls the report job while one is running, including one started through the API. |
 
 ## Proposed endpoints
 
 - `GET /api/health` — status of the API, database, and Ollama dependency
 - `POST /api/ingest` — run a feed refresh and return a summary (502 if the source cannot be read, 409 if one is already running)
 - `GET /api/search?q=...&k=5` — the stored discussions most similar to a query within the past seven days, with source links
+- `POST /api/data/clear` — delete all stored data; the body must be `{"confirm":"DELETE"}` (400 otherwise, 409 while a refresh or report run is in progress)
 - `GET /api/embeddings/map` — the past week's embeddings flattened to two dimensions, with each one's retrieval count
 - `GET /api/retrieval/stats?limit=10` — which discussions similarity search has returned most often
 - `POST /api/reports/generate` — start generating both report variants in the background (202; 409 if already running)
@@ -69,7 +70,7 @@ All five tables are defined in `src/storage/schema.ts`. A report_run is stored a
 
 - Source: Lemmy public API for `games` on lemmy.world (D-005). Fetch posts with `/api/v3/post/list` (sort `New`, paginate until older than the window), then comments per post with `/api/v3/comment/list`.
 - Rate-limit requests and send a descriptive user-agent.
-- Manual refresh only (D-008): ingestion runs when triggered from the launcher, web UI, or `POST /api/ingest`. No background scheduler; the requirement is **automated ingestion**, not an always-on scheduler.
+- Manual refresh only (D-008): ingestion runs when triggered from the web UI or `POST /api/ingest`. No background scheduler; the requirement is **automated ingestion**, not an always-on scheduler.
 - Upsert based on stable external IDs; avoid repeatedly embedding unchanged text.
 - Keep source URL and posted-at timestamps for each discussion.
 - Tests use a small labeled offline fixture in the Lemmy response shape (D-004), so parsing, normalization, and deduplication are tested without network access. The fixture is never loaded into the app database.

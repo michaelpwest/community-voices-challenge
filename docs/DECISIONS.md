@@ -86,7 +86,7 @@ Record meaningful decisions briefly, with the alternatives, rationale, and trade
 
 ## D-008 — Manual ingestion only
 
-**Choice:** Ingestion and report generation run only when requested, from the launcher's refresh action, the web UI, or `POST /api/ingest`. No background scheduler.
+**Choice:** Ingestion and report generation run only when requested, from the web UI or `POST /api/ingest`. No background scheduler.
 
 **Alternatives:** Optional periodic refresh (e.g. hourly polling).
 
@@ -198,3 +198,23 @@ Chosen while building Milestone 6; confirm or change.
 - Two axes keep only about 12% of the variation in these embeddings, so the map is a rough guide. It did separate one large topic from the rest in testing, but nearby dots are not guaranteed to be similar.
 - Counts favor whatever the five fixed evidence queries match, so they describe this app's retrieval more than the community's interests.
 - The chart's two colors were checked for color-blind separation and contrast on both the light and dark surfaces.
+
+## D-013 — Browser-first control; the launcher has no menu
+
+**Choice:**
+- `npm start` checks prerequisites, starts the API and web UI, opens the web UI in the default browser, and then waits for Ctrl+C. It no longer has a menu.
+- Every action is in the web UI: refresh the feed, generate reports, see system status, and clear data.
+- **Clear data** in the web UI requires typing `DELETE`. The API checks the word again, refuses while a refresh or report run is in progress, and empties the tables in one transaction instead of deleting the database file.
+- The setup choices shown when Ollama is not running or a model is missing stay in the terminal, because they happen before the web UI exists.
+- The browser is opened only when a person is at the terminal, and can be turned off with `OPEN_BROWSER=false`.
+
+**Alternatives:**
+- Keeping both the terminal menu and the web UI: two ways to do everything, with the terminal versions showing less and needing their own tests.
+- A menu item that opens the browser: one extra step for the reviewer before reaching the demo.
+
+**Why:** The reviewer's path becomes one command and then the browser. Removing the menu also removed five source files and the terminal-only code for status, report summaries, and deleting the database file.
+
+**Trade-off:**
+- The app can no longer be driven from the terminal alone, except through the API with a tool such as curl.
+- Opening the browser uses each system's own command (`start`, `open`, `xdg-open`). It is verified on Windows; macOS and Linux are covered by unit tests only.
+- Clearing data now needs a working API. If the database itself is damaged, the fallback is to stop the app and delete the `data` folder.

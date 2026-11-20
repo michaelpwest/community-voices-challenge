@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { HealthResponse } from '../../../src/shared/health';
 import type { ReportJobStatus, ReportRun } from '../../../src/shared/reports';
 import { describeIngest, describeStoredData, formatDateTime } from '../format';
-import type { FeedState } from '../useDashboard';
+import type { ClearState, FeedState } from '../useDashboard';
+import { ClearDataForm } from './ClearDataForm';
 import { Button, Disclosure, ExternalLink, Message, Panel } from './ui';
 
 interface StatusPanelProps {
@@ -10,8 +11,10 @@ interface StatusPanelProps {
   run: ReportRun | null;
   job: ReportJobStatus | null;
   feed: FeedState;
+  clear: ClearState;
   onRefreshFeed: () => void;
   onGenerateReports: () => void;
+  onClearData: (confirmation: string) => void;
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -58,9 +61,16 @@ function SystemDetails({ health }: { health: HealthResponse }) {
   );
 }
 
-function ActivityMessages({ job, feed }: Pick<StatusPanelProps, 'job' | 'feed'>) {
+function ActivityMessages({ job, feed, clear }: Pick<StatusPanelProps, 'job' | 'feed' | 'clear'>) {
   return (
     <>
+      {clear.phase === 'done' && (
+        <Message tone="ok">
+          Stored data cleared: {clear.summary.discussions} posts and comments and {clear.summary.reports} report runs
+          were deleted.
+        </Message>
+      )}
+      {clear.phase === 'error' && <Message tone="problem">Clearing data failed: {clear.message}</Message>}
       {feed.phase === 'running' && (
         <Message tone="busy">
           Fetching the past week from the community and embedding it. This can take a minute…
@@ -86,11 +96,21 @@ function ActivityMessages({ job, feed }: Pick<StatusPanelProps, 'job' | 'feed'>)
   );
 }
 
-export function StatusPanel({ health, run, job, feed, onRefreshFeed, onGenerateReports }: StatusPanelProps) {
+export function StatusPanel(props: StatusPanelProps) {
+  const { health, run, job, feed, clear, onRefreshFeed, onGenerateReports, onClearData } = props;
   const { source, data } = health;
   const hasData = data !== null && data.posts + data.comments > 0;
   const refreshing = feed.phase === 'running';
   const generating = job?.state === 'running';
+  const clearing = clear.phase === 'running';
+  const busy = refreshing || generating || clearing;
+  const stored = (data?.posts ?? 0) + (data?.comments ?? 0);
+
+  // The confirmation form closes by itself once the data is gone.
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  useEffect(() => {
+    if (clear.phase === 'done') setConfirmingClear(false);
+  }, [clear.phase]);
 
   return (
     <Panel aria-label="Status">
@@ -107,20 +127,37 @@ export function StatusPanel({ health, run, job, feed, onRefreshFeed, onGenerateR
       </dl>
 
       <div className="mt-4 flex flex-wrap gap-2.5">
-        <Button onClick={onRefreshFeed} disabled={refreshing || generating}>
+        <Button onClick={onRefreshFeed} disabled={busy}>
           {refreshing ? 'Refreshing…' : 'Refresh feed'}
         </Button>
         <Button
           primary
           onClick={onGenerateReports}
-          disabled={!hasData || refreshing || generating}
+          disabled={!hasData || busy}
           title={hasData ? undefined : 'Refresh the feed first'}
         >
           {generating ? 'Generating…' : 'Generate reports'}
         </Button>
+        <Button
+          danger
+          className="sm:ml-auto"
+          onClick={() => setConfirmingClear(true)}
+          disabled={busy || confirmingClear || (stored === 0 && run === null)}
+        >
+          Clear data
+        </Button>
       </div>
 
-      <ActivityMessages job={job} feed={feed} />
+      {confirmingClear && (
+        <ClearDataForm
+          whatWillBeDeleted={`${stored} posts and comments and every report`}
+          deleting={clearing}
+          onConfirm={onClearData}
+          onCancel={() => setConfirmingClear(false)}
+        />
+      )}
+
+      <ActivityMessages job={job} feed={feed} clear={clear} />
       <SystemDetails health={health} />
     </Panel>
   );

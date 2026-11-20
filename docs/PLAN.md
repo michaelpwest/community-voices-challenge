@@ -42,7 +42,7 @@ Build the smallest useful local-first application that ingests recent discussion
 - [x] Add `.env.example` for URLs, model names, DB configuration, and source configuration.
 - [x] Implement `npm start` launcher: detect Ollama, validate prerequisites, start API on `:3001` and web on `:3000`.
 - [x] Support a configured Ollama URL; offer guided setup rather than silently installing software.
-- [ ] Add launcher actions: refresh feed, clear data **with confirmation**, system status, graceful exit. _Implemented and unit-tested; the menu and Ctrl+C still need a manual check in a real terminal. Refresh feed reports "not implemented" until Milestone 2._
+- [x] Add launcher actions: refresh feed, clear data **with confirmation**, system status, graceful exit. _Superseded by D-013: refresh, status, and clear data (with a typed confirmation) are now in the web UI, and the launcher only checks, starts, opens the browser, and stops on Ctrl+C._
 - [x] Ensure API and web can also start independently for testing/automation.
 
 **Done when:** a fresh clone can start the UI/API after documented prerequisites, and the launcher handles Ctrl+C without killing pre-existing Ollama services.
@@ -99,7 +99,7 @@ Build the smallest useful local-first application that ingests recent discussion
 - [x] Live ingestion works, and feed failures produce clear errors.
 - [x] Baseline/RAG reports and comparison can be reproduced.
 - [x] Tests run successfully.
-- [ ] Interactive launcher menu and Ctrl+C confirmed in a real terminal (see Milestone 1).
+- [ ] `npm start` confirmed in a real terminal: the browser opens, and Ctrl+C stops the app (D-013).
 - [ ] Proposed decisions D-009, D-010, and D-011 confirmed.
 - [ ] Final commit pushed and repository link sent.
 

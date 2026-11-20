@@ -1,9 +1,8 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { checkDatabase, openDatabase } from './database';
-import { deleteDatabaseFiles } from './databaseFiles';
 
 let workDir: string;
 
@@ -41,23 +40,5 @@ describe('checkDatabase', () => {
     const status = checkDatabase(join(blocker, 'app.db'));
     expect(status.ok).toBe(false);
     expect(status.error).toBeTruthy();
-  });
-});
-
-describe('deleteDatabaseFiles', () => {
-  it('removes the database and its side files, and nothing else', () => {
-    const databasePath = join(workDir, 'app.db');
-    const unrelated = join(workDir, 'app.db.backup');
-    for (const file of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`, unrelated]) {
-      writeFileSync(file, 'x');
-    }
-    const removed = deleteDatabaseFiles(databasePath);
-    expect(removed).toEqual([databasePath, `${databasePath}-wal`, `${databasePath}-shm`]);
-    expect(existsSync(databasePath)).toBe(false);
-    expect(existsSync(unrelated)).toBe(true);
-  });
-
-  it('returns an empty list when there is nothing to delete', () => {
-    expect(deleteDatabaseFiles(join(workDir, 'missing.db'))).toEqual([]);
   });
 });

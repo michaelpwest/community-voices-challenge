@@ -1,4 +1,4 @@
-import type { IngestSummary } from '../../src/shared/discussions';
+import type { ClearSummary, IngestSummary } from '../../src/shared/discussions';
 import type { ApiErrorResponse, HealthResponse } from '../../src/shared/health';
 import type { EmbeddingMap, RetrievalStats } from '../../src/shared/insights';
 import type { ReportJobStatus, ReportRun } from '../../src/shared/reports';
@@ -54,7 +54,15 @@ export const startReportGeneration = (): Promise<ReportJobStatus> =>
 /** Fetches and embeds the past week. Resolves when the refresh has finished. */
 export const refreshFeed = (): Promise<IngestSummary> => request('/api/ingest', { method: 'POST' });
 
-export const fetchEmbeddingMap = (): Promise<EmbeddingMap> => request('/api/embeddings/map');
+/** Deletes all stored data. The API refuses unless the confirmation word is exactly right. */
+export const clearData = (confirmation: string): Promise<ClearSummary> =>
+  request('/api/data/clear', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ confirm: confirmation }),
+  });
+
+export const fetchEmbeddingMap =(): Promise<EmbeddingMap> => request('/api/embeddings/map');
 
 export const fetchRetrievalStats = (): Promise<RetrievalStats> => request('/api/retrieval/stats');
 

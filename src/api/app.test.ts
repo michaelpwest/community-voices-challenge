@@ -81,6 +81,7 @@ function appWith(overrides: Partial<AppDependencies> = {}) {
     getLatestReport: () => null,
     getEmbeddingMap: () => embeddingMap,
     getRetrievalStats: () => retrievalStats,
+    clearData: () => ({ discussions: 6, reports: 1 }),
     ...overrides,
   });
 }
@@ -320,6 +321,75 @@ describe('report routes', () => {
     const response = await appWith().request('/api/reports/latest');
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ error: { code: 'no_report' } });
+  });
+});
+
+describe('POST /api/data/clear', () => {
+  const clear = (app: ReturnType<typeof appWith>, body: unknown) =>
+    app.request('/api/data/clear', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: typeof body === 'string' ? body : JSON.stringify(body),
+    });
+
+  it('deletes the stored data when the confirmation word is sent', async () => {
+    const clearData = vi.fn(() => ({ discussions: 6, reports: 1 }));
+    const response = await clear(appWith({ clearData }), { confirm: 'DELETE' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ discussions: 6, reports: 1 });
+    expect(clearData).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['no body', ''],
+    ['an empty object', {}],
+    ['the wrong word', { confirm: 'yes' }],
+    ['the right word in the wrong case', { confirm: 'delete' }],
+    ['a true flag instead of the word', { confirm: true }],
+    ['text that is not JSON', 'DELETE'],
+  ])('deletes nothing when sent %s', async (_label, body) => {
+    const clearData = vi.fn(() => ({ discussions: 0, reports: 0 }));
+    const response = await clear(appWith({ clearData }), body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: 'confirmation_required' } });
+    expect(clearData).not.toHaveBeenCalled();
+  });
+
+  it('refuses while a feed refresh is running', async () => {
+    const clearData = vi.fn(() => ({ discussions: 0, reports: 0 }));
+    const app = appWith({ clearData, ingest: () => new Promise<IngestSummary>(() => undefined) });
+    void app.request('/api/ingest', { method: 'POST' });
+    const response = await clear(app, { confirm: 'DELETE' });
+    expect(response.status).toBe(409);
+    expect(clearData).not.toHaveBeenCalled();
+  });
+
+  it('refuses while reports are being generated', async () => {
+    const clearData = vi.fn(() => ({ discussions: 0, reports: 0 }));
+    const app = appWith({ clearData, generateReports: () => new Promise<ReportRun>(() => undefined) });
+    await app.request('/api/reports/generate', { method: 'POST' });
+    expect((await clear(app, { confirm: 'DELETE' })).status).toBe(409);
+    expect(clearData).not.toHaveBeenCalled();
+  });
+
+  it('forgets the outcome of the last report job', async () => {
+    const app = appWith();
+    await app.request('/api/reports/generate', { method: 'POST' });
+    await settle();
+    expect((await reportStatus(app)).state).toBe('succeeded');
+    await clear(app, { confirm: 'DELETE' });
+    expect((await reportStatus(app)).state).toBe('idle');
+  });
+
+  it('is refused when it comes from another website', async () => {
+    const clearData = vi.fn(() => ({ discussions: 0, reports: 0 }));
+    const response = await appWith({ clearData }).request('/api/data/clear', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', host: 'localhost:3001', origin: 'https://example.com' },
+      body: JSON.stringify({ confirm: 'DELETE' }),
+    });
+    expect(response.status).toBe(403);
+    expect(clearData).not.toHaveBeenCalled();
   });
 });
 

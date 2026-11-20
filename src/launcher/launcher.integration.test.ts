@@ -100,7 +100,9 @@ describe('launcher', () => {
     launcher.stdout?.on('data', (chunk: Buffer) => (output.value += chunk.toString()));
     launcher.stderr?.on('data', (chunk: Buffer) => (output.value += chunk.toString()));
 
-    await waitForOutput(launcher, 'menu disabled', output);
+    await waitForOutput(launcher, 'Press Ctrl+C to stop', output);
+    // Without a terminal the launcher must not open a browser; it prints the address instead.
+    expect(output.value).toContain(`Open http://localhost:${webPort} in your browser.`);
 
     // The browser path: web origin -> Vite proxy -> API -> database and Ollama checks.
     const healthResponse = await fetch(`http://127.0.0.1:${webPort}/api/health`);

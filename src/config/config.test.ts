@@ -52,6 +52,12 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ LEMMY_COMMENTS_PER_POST: '51' }, BASE_DIR)).toThrow(/LEMMY_COMMENTS_PER_POST/);
   });
 
+  it('opens the browser on start unless told not to', () => {
+    expect(loadConfig({}, BASE_DIR).openBrowser).toBe(true);
+    expect(loadConfig({ OPEN_BROWSER: 'false' }, BASE_DIR).openBrowser).toBe(false);
+    expect(() => loadConfig({ OPEN_BROWSER: 'maybe' }, BASE_DIR)).toThrow(/OPEN_BROWSER: must be true or false/);
+  });
+
   it('rejects identical web and API ports', () => {
     expect(() => loadConfig({ WEB_PORT: '3001' }, BASE_DIR)).toThrow(/must differ/);
   });

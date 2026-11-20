@@ -54,6 +54,17 @@ export interface IngestSummary {
   embeddingError: string | null;
 }
 
+/** The word that must be typed, and sent to the API, to confirm deleting all stored data. */
+export const CLEAR_CONFIRMATION = 'DELETE';
+
+/** What "Clear data" removed. */
+export interface ClearSummary {
+  /** Posts and comments deleted, along with their embeddings and retrieval counts. */
+  discussions: number;
+  /** Report runs deleted. */
+  reports: number;
+}
+
 export interface DataStatus {
   posts: number;
   comments: number;

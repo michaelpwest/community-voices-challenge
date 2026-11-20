@@ -37,9 +37,20 @@ export function Message({ tone, children }: { tone: keyof typeof MESSAGE_TONE; c
   );
 }
 
-/** A button sized for touch. `primary` marks the main action. */
-export function Button({ primary = false, className = '', ...props }: ComponentProps<'button'> & { primary?: boolean }) {
-  const look = primary ? 'border-accent bg-accent font-semibold text-surface' : 'border-line bg-surface';
+interface ButtonProps extends ComponentProps<'button'> {
+  /** The main action. */
+  primary?: boolean;
+  /** An action that deletes something. */
+  danger?: boolean;
+}
+
+/** A button sized for touch. */
+export function Button({ primary = false, danger = false, className = '', ...props }: ButtonProps) {
+  const look = primary
+    ? 'border-accent bg-accent font-semibold text-surface'
+    : danger
+      ? 'border-problem bg-surface text-problem'
+      : 'border-line bg-surface';
   return (
     <button
       type="button"

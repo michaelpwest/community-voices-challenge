@@ -4,30 +4,20 @@ import { createInterface as createLineReader } from 'node:readline';
 import { createInterface, type Interface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { ConfigError, loadConfig, loadEnvFile, type AppConfig } from '../config/config';
-import type { IngestSummary } from '../shared/discussions';
-import type { ApiErrorResponse, HealthResponse } from '../shared/health';
 import { LOOPBACK_HOST, SHUTDOWN_MESSAGE } from '../shared/processProtocol';
-import type { ReportJobStatus, ReportRun } from '../shared/reports';
-import { clearDataWithConfirmation } from './clearData';
 import { ensureOllama } from './ollamaSetup';
+import { openBrowser } from './openBrowser';
 import { OwnedProcesses } from './ownedProcesses';
 import { terminalPalette } from './palette';
-import { formatReportRun } from './reportSummary';
 import { selectOption, type MenuOption } from './selectMenu';
-import { formatHealth, formatIngestSummary } from './statusReport';
+
+// Checks prerequisites, starts the API and the web UI, and opens the browser.
+// Everything else (refreshing, generating, clearing data) is done in the web UI.
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const MINIMUM_NODE: readonly [number, number] = [22, 13];
 const CHILD_START_TIMEOUT_MS = 30_000;
-const REPORT_POLL_MS = 2000;
 const paint = terminalPalette;
-const MENU: MenuOption[] = [
-  { key: 'r', label: 'Refresh feed' },
-  { key: 'g', label: 'Generate reports' },
-  { key: 's', label: 'System status' },
-  { key: 'c', label: 'Clear data' },
-  { key: 'q', label: 'Quit' },
-];
 
 type ChildName = 'api' | 'web';
 const CHILD_ENTRY: Record<ChildName, string> = { api: 'src/api/main.ts', web: 'web/server.ts' };
@@ -42,7 +32,7 @@ function requestStop(): void {
   void shutdown(0);
 }
 
-/** Asks for a line of text. While the prompt is open, Ctrl+C arrives as a readline event. */
+/** Asks for a line of text during setup. While the prompt is open, Ctrl+C arrives as a readline event. */
 async function ask(question: string): Promise<string> {
   const prompt = createInterface({ input: process.stdin, output: process.stdout });
   activePrompt = prompt;
@@ -55,6 +45,7 @@ async function ask(question: string): Promise<string> {
   }
 }
 
+/** Shows the choices offered during setup, such as what to do when Ollama is not running. */
 function choose(options: MenuOption[]): Promise<string> {
   return selectOption(options, { input: process.stdin, output: process.stdout, paint, onInterrupt: requestStop });
 }
@@ -128,7 +119,8 @@ function startChild(name: ChildName, config: AppConfig): void {
   owned.add(name, child, onUnexpectedExit);
 }
 
-async function waitUntilResponding(url: string, name: ChildName): Promise<void> {
+async function startAndWait(name: ChildName, url: string, config: AppConfig): Promise<void> {
+  startChild(name, config);
   const deadline = Date.now() + CHILD_START_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (!owned.names().includes(name)) throw new Error(`${name} exited during startup.`);
@@ -144,97 +136,8 @@ async function waitUntilResponding(url: string, name: ChildName): Promise<void> 
   throw new Error(`${name} did not respond at ${url} within ${CHILD_START_TIMEOUT_MS / 1000} seconds.`);
 }
 
-function apiUrl(config: AppConfig, path: string): string {
-  return `http://${LOOPBACK_HOST}:${config.apiPort}${path}`;
-}
-
-async function startApi(config: AppConfig): Promise<void> {
-  startChild('api', config);
-  await waitUntilResponding(apiUrl(config, '/api/health'), 'api');
-}
-
-async function startWeb(config: AppConfig): Promise<void> {
-  startChild('web', config);
-  await waitUntilResponding(`http://${LOOPBACK_HOST}:${config.webPort}/`, 'web');
-}
-
-async function showStatus(config: AppConfig): Promise<void> {
-  const response = await fetch(apiUrl(config, '/api/health'), { signal: AbortSignal.timeout(10_000) });
-  const health = (await response.json()) as HealthResponse;
-  formatHealth(health, paint).forEach(say);
-  say(`Started by this launcher: ${owned.names().join(', ') || 'nothing'}`);
-}
-
-async function refreshFeed(config: AppConfig): Promise<void> {
-  say(`Fetching the past week of ${config.source.community} from ${config.source.instanceUrl}. This can take a minute...`);
-  const response = await fetch(apiUrl(config, '/api/ingest'), { method: 'POST' });
-  if (response.ok) {
-    formatIngestSummary((await response.json()) as IngestSummary, paint).forEach(say);
-    return;
-  }
-  const body = (await response.json()) as Partial<ApiErrorResponse>;
-  say(paint.warn(`Feed refresh failed (HTTP ${response.status}): ${body.error?.message ?? 'no details'}`));
-}
-
-/** Starts report generation, shows each stage as it begins, and prints the comparison when done. */
-async function generateReports(config: AppConfig): Promise<void> {
-  const started = await fetch(apiUrl(config, '/api/reports/generate'), { method: 'POST' });
-  if (!started.ok) {
-    const body = (await started.json()) as Partial<ApiErrorResponse>;
-    say(paint.warn(`Could not start report generation: ${body.error?.message ?? `HTTP ${started.status}`}`));
-    return;
-  }
-  say('Generating two reports with the local model. This can take a few minutes...');
-
-  let shownStep: string | null = null;
-  for (;;) {
-    await new Promise((resolve) => setTimeout(resolve, REPORT_POLL_MS));
-    const status = (await (await fetch(apiUrl(config, '/api/reports/status'))).json()) as ReportJobStatus;
-    if (status.step && status.step !== shownStep) {
-      shownStep = status.step;
-      say(paint.dim(`  ${status.step}...`));
-    }
-    if (status.state === 'failed') {
-      say(paint.warn(`Report generation failed: ${status.error ?? 'unknown error'}`));
-      return;
-    }
-    if (status.state !== 'running') break;
-  }
-
-  const latest = await fetch(apiUrl(config, '/api/reports/latest'));
-  formatReportRun((await latest.json()) as ReportRun, paint).forEach(say);
-  say(paint.dim(`\nFull reports, evidence, and metrics: ${apiUrl(config, '/api/reports/latest')}`));
-}
-
-async function clearData(config: AppConfig): Promise<void> {
-  await clearDataWithConfirmation(
-    { say, ask },
-    {
-      databasePath: config.databasePath,
-      stopApi: () => owned.stop('api'),
-      startApi: () => startApi(config),
-    },
-  );
-}
-
-async function runMenu(config: AppConfig): Promise<void> {
-  for (;;) {
-    say('');
-    const choice = await choose(MENU);
-    try {
-      if (choice === 'r') await refreshFeed(config);
-      else if (choice === 'g') await generateReports(config);
-      else if (choice === 's') await showStatus(config);
-      else if (choice === 'c') await clearData(config);
-      else if (choice === 'q') return;
-    } catch (error) {
-      sayProblem(`Action failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-}
-
 function watchForStopRequests(): void {
-  // While a menu or text prompt is open, Ctrl+C is handled there instead of arriving as a signal.
+  // While a setup prompt is open, Ctrl+C is handled there instead of arriving as a signal.
   process.on('SIGINT', requestStop);
   process.on('SIGTERM', requestStop);
   process.on('SIGHUP', requestStop);
@@ -242,6 +145,17 @@ function watchForStopRequests(): void {
   process.on('message', (message) => {
     if (message === SHUTDOWN_MESSAGE) requestStop();
   });
+}
+
+/** Opens the web UI in the browser when a person is at the terminal and has not turned this off. */
+async function showWebUi(webUrl: string, config: AppConfig, interactive: boolean): Promise<void> {
+  if (!interactive || !config.openBrowser) {
+    say(`Open ${paint.accent(webUrl)} in your browser.`);
+  } else if (await openBrowser(webUrl)) {
+    say(`Opened ${paint.accent(webUrl)} in your browser.`);
+  } else {
+    say(paint.warn(`Could not open a browser automatically. Open ${webUrl} yourself.`));
+  }
 }
 
 async function main(): Promise<void> {
@@ -252,7 +166,7 @@ async function main(): Promise<void> {
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   watchForStopRequests();
 
-  say(`${paint.bold(paint.accent('Community Voices launcher'))}\n\nChecking Ollama...`);
+  say(`${paint.bold(paint.accent('Community Voices'))}\n\nChecking Ollama...`);
   const setup = await ensureOllama(config.ollama, { interactive, paint, say, ask, choose }, owned);
   if (setup.action === 'quit') return shutdown(0);
   config = { ...config, ollama: { ...config.ollama, url: setup.ollamaUrl } };
@@ -260,21 +174,17 @@ async function main(): Promise<void> {
   await assertPortFree(config.apiPort, 'API_PORT');
   await assertPortFree(config.webPort, 'WEB_PORT');
   say('\nStarting the API and web UI...');
-  await startApi(config);
-  await startWeb(config);
-  say(`\nWeb UI: ${paint.accent(`http://localhost:${config.webPort}`)}`);
-  say(`API:    ${paint.accent(`http://localhost:${config.apiPort}/api/health`)}`);
+  await startAndWait('api', `http://${LOOPBACK_HOST}:${config.apiPort}/api/health`, config);
+  await startAndWait('web', `http://${LOOPBACK_HOST}:${config.webPort}/`, config);
 
-  if (!interactive) {
-    say('No interactive terminal: menu disabled. Press Ctrl+C to stop.');
-    return;
-  }
-  await runMenu(config);
-  await shutdown(0);
+  say('');
+  await showWebUi(`http://localhost:${config.webPort}`, config, interactive);
+  say(paint.dim(`API: http://localhost:${config.apiPort}/api/health`));
+  say('\nRunning. Press Ctrl+C to stop.');
 }
 
 main().catch(async (error: unknown) => {
-  // Closing the prompt during shutdown can reject a pending question; that is not a failure.
+  // Closing a setup prompt during shutdown can reject a pending question; that is not a failure.
   if (shuttingDown) return;
   sayProblem(error instanceof ConfigError || error instanceof Error ? error.message : String(error));
   await shutdown(1);

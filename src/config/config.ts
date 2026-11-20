@@ -5,6 +5,8 @@ import { z } from 'zod';
 export interface AppConfig {
   webPort: number;
   apiPort: number;
+  /** Whether `npm start` opens the web UI in the default browser. */
+  openBrowser: boolean;
   ollama: {
     url: string;
     model: string;
@@ -47,6 +49,10 @@ const httpUrl = z
 const envSchema = z.object({
   WEB_PORT: port.default(3000),
   API_PORT: port.default(3001),
+  OPEN_BROWSER: z
+    .enum(['true', 'false'], { error: 'must be true or false' })
+    .default('true')
+    .transform((value) => value === 'true'),
   OLLAMA_URL: httpUrl.default('http://localhost:11434'),
   OLLAMA_MODEL: name.default('llama3.1:8b'),
   OLLAMA_EMBED_MODEL: name.default('nomic-embed-text'),
@@ -85,6 +91,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, baseDir = proce
   return {
     webPort: values.WEB_PORT,
     apiPort: values.API_PORT,
+    openBrowser: values.OPEN_BROWSER,
     ollama: {
       url: values.OLLAMA_URL,
       model: values.OLLAMA_MODEL,

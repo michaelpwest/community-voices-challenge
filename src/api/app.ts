@@ -7,7 +7,13 @@ import { isOllamaReady } from '../ollama/ollamaStatus';
 import { ReportFormatError } from '../reports/reportSchema';
 import { NoDataError } from '../reports/reportService';
 import { DEFAULT_TOP_K, MAX_TOP_K } from '../retrieval/retrieval';
-import type { DataStatus, IngestSummary, SearchResponse } from '../shared/discussions';
+import {
+  CLEAR_CONFIRMATION,
+  type ClearSummary,
+  type DataStatus,
+  type IngestSummary,
+  type SearchResponse,
+} from '../shared/discussions';
 import type { ApiErrorResponse, DatabaseStatus, HealthResponse, OllamaStatus } from '../shared/health';
 import type { EmbeddingMap, RetrievalStats } from '../shared/insights';
 import type { ReportJobStatus, ReportRun } from '../shared/reports';
@@ -25,7 +31,11 @@ export interface AppDependencies {
   getLatestReport: () => ReportRun | null;
   getEmbeddingMap: () => EmbeddingMap;
   getRetrievalStats: (limit: number) => RetrievalStats;
+  /** Deletes all stored data. Only called after the confirmation word has been checked. */
+  clearData: () => ClearSummary;
 }
+
+const clearRequestSchema = z.object({ confirm: z.literal(CLEAR_CONFIRMATION) });
 
 const DEFAULT_STATS_LIMIT = 10;
 const statsQuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(50).default(DEFAULT_STATS_LIMIT) });
@@ -53,7 +63,7 @@ function localAddresses(ports: number[]): Set<string> {
 
 export function createApp(dependencies: AppDependencies): Hono {
   const { config, checkOllama, checkDatabase, getDataStatus, ingest, search } = dependencies;
-  const { generateReports, getLatestReport, getEmbeddingMap, getRetrievalStats } = dependencies;
+  const { generateReports, getLatestReport, getEmbeddingMap, getRetrievalStats, clearData } = dependencies;
   const app = new Hono();
   let ingestInProgress = false;
   let reportJob: ReportJobStatus = IDLE_REPORT_JOB;
@@ -169,6 +179,24 @@ export function createApp(dependencies: AppDependencies): Hono {
   app.get('/api/reports/latest', (c) => {
     const run = getLatestReport();
     return run ? c.json(run) : c.json(errorBody('no_report', 'No report has been generated yet.'), 404);
+  });
+
+  // Deletes everything stored. The body must carry the confirmation word, so a
+  // stray or mistaken request cannot wipe the data.
+  app.post('/api/data/clear', async (c) => {
+    const body: unknown = await c.req.json().catch(() => null);
+    if (!clearRequestSchema.safeParse(body).success) {
+      return c.json(
+        errorBody('confirmation_required', `Type ${CLEAR_CONFIRMATION} to confirm. Nothing was deleted.`),
+        400,
+      );
+    }
+    if (ingestInProgress || reportJob.state === 'running') {
+      return c.json(errorBody('busy', 'Wait for the current refresh or report run to finish, then try again.'), 409);
+    }
+    const summary = clearData();
+    reportJob = IDLE_REPORT_JOB;
+    return c.json(summary);
   });
 
   // The past week's embeddings flattened to two dimensions for display.

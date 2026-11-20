@@ -10,6 +10,7 @@ import { retrieveDiscussions } from '../retrieval/retrieval';
 import { LOOPBACK_HOST, SHUTDOWN_MESSAGE } from '../shared/processProtocol';
 import { LemmyClient } from '../sources/lemmy/lemmyClient';
 import { LemmySource } from '../sources/lemmy/lemmySource';
+import { clearAllData } from '../storage/clearData';
 import { checkDatabase, openDatabase } from '../storage/database';
 import { getDataStatus } from '../storage/discussionStore';
 import { getRetrievalStats } from '../storage/insightStore';
@@ -46,6 +47,7 @@ function start(): void {
     getLatestReport: () => getLatestReportRun(db, community),
     getEmbeddingMap: () => buildEmbeddingMap({ db, community, embeddingModel: embedder.model }),
     getRetrievalStats: (limit) => getRetrievalStats(db, community, limit),
+    clearData: () => clearAllData(db),
   });
 
   const server = serve({ fetch: app.fetch, port: config.apiPort, hostname: LOOPBACK_HOST }, (info) => {
@@ -62,7 +64,6 @@ function start(): void {
   });
 
   const exit = (): never => {
-    // Release the database file so the launcher can delete it on "Clear data".
     if (db.isOpen) db.close();
     process.exit(0);
   };

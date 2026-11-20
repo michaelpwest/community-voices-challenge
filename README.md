@@ -25,7 +25,7 @@ Everything runs on your machine. The only network traffic is downloading the mod
 - React web UI styled with Tailwind CSS and served by Vite
 - Ollama for local text generation (`llama3.1:8b`) and embeddings (`nomic-embed-text`), both configurable
 - SQLite (Node's built-in `node:sqlite`) with sqlite-vec for storage and vector similarity search; no database server
-- One `npm start` launcher that checks prerequisites and starts everything
+- One `npm start` command that checks prerequisites, starts everything, and opens the web UI in your browser
 
 ## Requirements
 
@@ -57,9 +57,9 @@ Everything runs on your machine. The only network traffic is downloading the mod
    npm start
    ```
 
-   The launcher checks Ollama and the two models, then starts the API on `http://localhost:3001` and the web UI on `http://localhost:3000`. No configuration file is needed; see [Configuration](#configuration) to change ports, models, or URLs.
+   This checks Ollama and the two models, starts the API on `http://localhost:3001` and the web UI on `http://localhost:3000`, and opens the web UI in your default browser. If no browser opens, go to `http://localhost:3000` yourself. No configuration file is needed; see [Configuration](#configuration) to change ports, models, or URLs.
 
-4. Open `http://localhost:3000`.
+   Everything from here on is done in the browser. Leave the terminal running, and press Ctrl+C in it when you are finished. That stops only what `npm start` started; an Ollama server that was already running is left alone.
 
 ## Reproducing the baseline versus RAG comparison
 
@@ -75,9 +75,10 @@ Everything runs on your machine. The only network traffic is downloading the mod
 
 In testing, the RAG report covered that week's actual threads and cited them, while the baseline described plausible topics that the community had not discussed. Your results will differ in detail: the community changes daily, and the model's output varies slightly between runs even with a fixed seed.
 
-The same actions are available without the browser:
+To start over, click **Clear data** and type `DELETE` to confirm. It removes the stored discussions, embeddings, retrieval counts, and reports.
 
-- The launcher menu has **Refresh feed**, **Generate reports**, **System status**, **Clear data** (after typing `DELETE`), and **Quit**.
+The same actions are available through the API:
+
 - `curl -X POST http://localhost:3001/api/ingest` refreshes the feed.
 - `curl -X POST http://localhost:3001/api/reports/generate` starts report generation; `http://localhost:3001/api/reports/status` shows its progress.
 - `http://localhost:3001/api/reports/latest` returns the latest run as JSON, including the evidence and the metrics.
@@ -121,6 +122,7 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `WEB_PORT`, `API_PORT` | `3000`, `3001` | Local ports |
+| `OPEN_BROWSER` | `true` | Whether `npm start` opens the web UI in your browser |
 | `OLLAMA_URL` | `http://localhost:11434` | Where Ollama is running, including another machine |
 | `OLLAMA_MODEL` | `llama3.1:8b` | Model that writes both reports |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Model that creates embeddings |
@@ -134,7 +136,7 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 
 | Command | Purpose |
 | --- | --- |
-| `npm start` | Check prerequisites and start the API and web UI, with a menu |
+| `npm start` | Check prerequisites, start the API and web UI, and open the browser |
 | `npm run api` | Start only the API |
 | `npm run web` | Start only the web UI |
 | `npm test` | Run the tests (no Ollama or internet needed) |
@@ -145,16 +147,17 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 
 | Symptom | What to do |
 | --- | --- |
-| The launcher says Ollama is not reachable | Start Ollama, then choose **Retry**. If it runs on another machine, choose **Use a different URL** or set `OLLAMA_URL` in `.env`. The launcher never installs software for you. |
-| The launcher or the page says a model is missing | Run the `ollama pull` command it shows, or choose **Pull now** in the launcher. |
+| `npm start` says Ollama is not reachable | Start Ollama, then choose **Retry**. If it runs on another machine, choose **Use a different URL** or set `OLLAMA_URL` in `.env`. Nothing is ever installed for you. |
+| `npm start` or the page says a model is missing | Run the `ollama pull` command it shows, or choose **Pull now** when `npm start` offers it. |
+| No browser opens | Open `http://localhost:3000` yourself. This is expected on a machine with no desktop, or when `OPEN_BROWSER=false`. |
 | "Port 3000 (or 3001) is already in use" | Stop the other program, or set `WEB_PORT` or `API_PORT` in `.env`. |
 | "Node.js 22.13 or newer is required" | Upgrade Node.js. The app uses Node's built-in SQLite support. |
 | Feed refresh fails with "Could not read ... from lemmy.world" | The instance is down, slow, or rate limiting. Wait and try again; stored data is unaffected. |
-| Report generation is slow | Expected without a GPU. The page and the launcher show the current stage. A smaller model such as `llama3.2:3b` can be set with `OLLAMA_MODEL`. |
+| Report generation is slow | Expected without a GPU. The page shows the current stage. A smaller model such as `llama3.2:3b` can be set with `OLLAMA_MODEL`. |
 | "No discussions from the past seven days are stored" | Refresh the feed first. Data older than seven days is outside the report period. |
-| The page says the API is not responding | The launcher was stopped. Run `npm start` again. |
-| You want to start over | Choose **Clear data** in the launcher and type `DELETE`, or stop the app and delete the `data` folder. |
-| No colors in the launcher | Colors are off when output is not a terminal or when the `NO_COLOR` environment variable is set. |
+| The page says the API is not responding | The app was stopped in the terminal. Run `npm start` again. |
+| You want to start over | Click **Clear data** on the page and type `DELETE`, or stop the app and delete the `data` folder. |
+| No colors in the terminal | Colors are off when output is not a terminal or when the `NO_COLOR` environment variable is set. |
 
 ## Limitations
 
@@ -183,7 +186,7 @@ The tests use a small, hand-written, synthetic fixture in `src/sources/lemmy/fix
 | Flattening embeddings to two dimensions | `src/embeddings/` |
 | Evidence selection, prompt, citation checks, comparison | `src/reports/` |
 | API routes | `src/api/` |
-| Launcher | `src/launcher/` |
+| Startup checks, process management, opening the browser | `src/launcher/` |
 | Web UI | `web/src/` |
 
 ## Documentation
