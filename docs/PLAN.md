@@ -95,11 +95,11 @@ Build the smallest useful local-first application that ingests recent discussion
 
 - [x] Clone-tested: a fresh clone of the public repository installs and passes all tests on Windows and on Ubuntu 22.04.
 - [x] No committed credentials or personal data. The test fixture is synthetic.
-- [x] `npm start` and the README steps verified on Windows 11. On Ubuntu, startup and shutdown were verified without Ollama. macOS is untested.
+- [x] `npm start` and the README steps verified on Windows 11, and confirmed working on macOS (Node.js 26.13.1) by the developer. On Ubuntu, startup and shutdown were verified without Ollama.
 - [x] Live ingestion works, and feed failures produce clear errors.
 - [x] Baseline/RAG reports and comparison can be reproduced.
 - [x] Tests run successfully.
-- [ ] `npm start` confirmed in a real terminal: the browser opens, and Ctrl+C stops the app (D-013).
+- [x] `npm start` confirmed in a real terminal: the browser opens, and Ctrl+C stops the app (D-013). _Confirmed on macOS by the developer._
 - [ ] Proposed decisions D-009, D-010, and D-011 confirmed.
 - [ ] Final commit pushed and repository link sent.
 

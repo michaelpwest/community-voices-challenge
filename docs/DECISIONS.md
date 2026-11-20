@@ -117,7 +117,7 @@ Chosen while building Milestone 1; confirm or change.
 **Trade-off:**
 - Requires Node.js 22.13 or newer for `node:sqlite` extension loading; the launcher checks this.
 - The demo runs on the Vite dev server, which is fine locally but is not a production setup.
-- Loading sqlite-vec through `node:sqlite` is verified on Windows x64 (Node 26) and Linux x64 (Ubuntu 22.04, Node 22); macOS is untested.
+- Loading sqlite-vec through `node:sqlite` is verified on Windows x64 (Node 26) and Linux x64 (Ubuntu 22.04, Node 22), and the app was confirmed working on macOS (Node 26.13.1) by the developer.
 - On Node 22, `node:sqlite` prints an "experimental" warning. The launcher and `npm run api` suppress it.
 
 ## D-010 — Ingestion and retrieval rules
@@ -216,7 +216,7 @@ Chosen while building Milestone 6; confirm or change.
 
 **Trade-off:**
 - The app can no longer be driven from the terminal alone, except through the API with a tool such as curl.
-- Opening the browser uses each system's own command (`start`, `open`, `xdg-open`). It is verified on Windows; macOS and Linux are covered by unit tests only.
+- Opening the browser uses each system's own command (`start`, `open`, `xdg-open`). The app, including stopping with Ctrl+C, was confirmed working on macOS (Node 26.13.1) by the developer. On Windows the open command was tested on its own, before startup stopped waiting for its result; Linux is covered by unit tests only.
 - Clearing data now needs a working API. If the database itself is damaged, the fallback is to stop the app and delete the `data` folder.
 - Because the file is kept, it records a schema version. A file made by a version with different tables is refused with that same instruction instead of being used with the wrong shape.
 - Clear data removes every community's rows, so its button is always available when the app is idle, even if the page counts nothing for the configured community.

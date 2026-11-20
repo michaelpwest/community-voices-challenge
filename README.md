@@ -168,7 +168,7 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 - **Rough comparison metrics.** A name counts as found if the word appears anywhere in the week's discussions, so a wrong claim made of familiar words is not caught.
 - **No scheduler.** Ingestion and reports run when you ask for them.
 - **Local demo only.** The web UI runs on the Vite development server and the API has no login. Both accept connections only from the same computer.
-- **Tested platforms.** The full flow was run on Windows 11 (Node.js 26). On Ubuntu 22.04 (Node.js 22), installation, the test suite, and startup were verified, but not a full run with Ollama. macOS has not been tested.
+- **Tested platforms.** The full flow was run on Windows 11 and on macOS, both with Node.js 26. On Ubuntu 22.04 (Node.js 22), installation, the test suite, and startup were verified, but not a full run with Ollama.
 
 ## Tests
 

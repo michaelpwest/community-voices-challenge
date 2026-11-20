@@ -108,6 +108,6 @@ Use the **same model**, report period, instruction template, and temperature/set
 - First-run model downloads may be substantial; provide explicit instructions and progress.
 - lemmy.world may be slow or unavailable, and the offline fixture covers tests only (D-004); the demo fails without the live feed, so surface clear errors and document the dependency.
 - A week of comments (~1,400 measured) far exceeds a small model's context; comment selection and retrieval bounds are required.
-- sqlite-vec is a native extension; verify it installs on macOS, Linux, and Windows.
+- sqlite-vec is a native extension, so it must install on each platform. It has been confirmed on Windows, macOS, and Linux (D-009).
 - LLM predictions are uncertain; avoid presenting them as confirmed future events.
 - A full mobile app would add setup complexity; use a mobile-responsive web UI for MVP.
