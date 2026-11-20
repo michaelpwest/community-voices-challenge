@@ -1,7 +1,23 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-// Tables are created on first open. A fresh clone starts empty, and the
-// launcher's "Clear data" removes the whole file, so there are no migrations.
+// Tables are created on first open and there are no migrations. "Clear data"
+// empties the tables but keeps the file, so the file records which version of
+// these definitions it was made with. Raise SCHEMA_VERSION whenever a table
+// definition changes; an older file is then refused with instructions instead
+// of being used with the wrong shape.
+export const SCHEMA_VERSION = 1;
+
+/** The database file was made by a version of this app with different tables. */
+export class SchemaVersionError extends Error {
+  constructor(found: number) {
+    super(
+      `The database was created by a different version of this app (schema ${found}, expected ${SCHEMA_VERSION}). ` +
+        'Stop the app and delete the "data" folder to start fresh.',
+    );
+    this.name = 'SchemaVersionError';
+  }
+}
+
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS discussions (
     id            TEXT PRIMARY KEY,
@@ -55,7 +71,12 @@ const SCHEMA = `
   );
 `;
 
+/** Creates the tables in a new file, or confirms an existing file has the expected version. */
 export function initializeSchema(db: DatabaseSync): void {
   db.exec('PRAGMA foreign_keys = ON');
+  // 0 means a new file, or one made before versions were recorded (same tables as version 1).
+  const found = Number(db.prepare('PRAGMA user_version').get()?.user_version ?? 0);
+  if (found !== 0 && found !== SCHEMA_VERSION) throw new SchemaVersionError(found);
   db.exec(SCHEMA);
+  db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

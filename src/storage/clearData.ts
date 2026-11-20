@@ -2,8 +2,21 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { ClearSummary } from '../shared/discussions';
 
 /**
+ * Shrinks the file after a clear. The data is already gone by this point, so a
+ * failure here (a full disk, or another program reading the file) must not
+ * make the clear look like it failed.
+ */
+function reclaimSpace(db: DatabaseSync): void {
+  try {
+    db.exec('VACUUM');
+  } catch (error) {
+    console.warn('Data was cleared, but the database file could not be shrunk:', error);
+  }
+}
+
+/**
  * Deletes every stored discussion, embedding, retrieval count, ingestion
- * record, and report. All of it goes or none of it does. Callers must obtain
+ * record, and report, for every community. All of it goes or none of it does. Callers must obtain
  * explicit confirmation first; the data cannot be recovered afterwards except
  * by refreshing the feed and generating reports again.
  */
@@ -23,7 +36,6 @@ export function clearAllData(db: DatabaseSync): ClearSummary {
     db.exec('ROLLBACK');
     throw error;
   }
-  // Returns the freed space to the file system.
-  db.exec('VACUUM');
+  reclaimSpace(db);
   return summary;
 }

@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { IngestSummary } from '../../src/shared/discussions';
 import type { EvidencePassage } from '../../src/shared/reports';
 import {
+  describeCleared,
   describeIngest,
   describeSelection,
   describeStoredData,
+  formatCount,
   formatDateTime,
   formatDuration,
   formatPeriod,
@@ -87,6 +89,26 @@ describe('describeStoredData', () => {
     expect(describeStoredData({ posts: 2, comments: 3, embedded: 4, lastIngestion: null })).toBe(
       '2 posts and 3 comments, 4 of 5 embedded for search',
     );
+  });
+});
+
+describe('formatCount', () => {
+  it('uses the singular only for exactly one', () => {
+    expect(formatCount(1, 'report run')).toBe('1 report run');
+    expect(formatCount(0, 'report run')).toBe('0 report runs');
+    expect(formatCount(2, 'post or comment', 'posts and comments')).toBe('2 posts and comments');
+  });
+});
+
+describe('describeCleared', () => {
+  it.each([
+    [{ discussions: 399, reports: 2 }, 'Stored data cleared: 399 posts and comments and 2 report runs were deleted.'],
+    [{ discussions: 6, reports: 1 }, 'Stored data cleared: 6 posts and comments and 1 report run were deleted.'],
+    [{ discussions: 1, reports: 0 }, 'Stored data cleared: 1 post or comment and 0 report runs was deleted.'],
+    [{ discussions: 0, reports: 1 }, 'Stored data cleared: 0 posts and comments and 1 report run was deleted.'],
+    [{ discussions: 0, reports: 0 }, 'There was no stored data to clear.'],
+  ])('describes %j', (summary, expected) => {
+    expect(describeCleared(summary)).toBe(expected);
   });
 });
 

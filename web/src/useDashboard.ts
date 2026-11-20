@@ -51,6 +51,8 @@ export interface Dashboard {
   generateReports: () => void;
   /** Deletes all stored data. The typed confirmation is checked again by the API. */
   clearData: (confirmation: string) => void;
+  /** Removes the message left by the last clear attempt. */
+  dismissClearResult: () => void;
 }
 
 function failedJob(message: string): ReportJobStatus {
@@ -116,7 +118,7 @@ export function useDashboard(): Dashboard {
     startReportGeneration()
       .then(setJob)
       .catch((error: unknown) => {
-        // Already running (for example, started from the launcher): follow that job instead.
+        // Already running (for example, started through the API): follow that job instead.
         if (error instanceof ApiError && error.code === 'report_in_progress') void load();
         else setJob(failedJob(errorMessage(error)));
       });
@@ -147,6 +149,8 @@ export function useDashboard(): Dashboard {
     [load],
   );
 
+  const dismissClearResult = useCallback(() => setClear({ phase: 'idle' }), []);
+
   const reload = useCallback(() => {
     setLoading(true);
     void load();
@@ -166,5 +170,6 @@ export function useDashboard(): Dashboard {
     refreshFeed,
     generateReports,
     clearData,
+    dismissClearResult,
   };
 }

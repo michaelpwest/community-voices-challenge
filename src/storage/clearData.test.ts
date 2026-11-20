@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runIngestion } from '../ingestion/ingestService';
 import { createKeywordEmbedder, createScriptedGenerator } from '../ollama/testSupport';
 import { generateReportRun } from '../reports/reportService';
@@ -77,6 +77,31 @@ describe('clearAllData', () => {
       now,
     });
     expect(summary).toMatchObject({ inserted: 6, embedded: 6 });
+  });
+
+  it('removes data from every community, not only the configured one', async () => {
+    await fillWithData();
+    db.prepare('UPDATE discussions SET community = ? WHERE kind = ?').run('another_community', 'comment');
+    expect(clearAllData(db)).toEqual({ discussions: 6, reports: 1 });
+    expect(rowCounts()).toEqual([0, 0, 0, 0, 0]);
+  });
+
+  it('still succeeds when the file cannot be shrunk afterwards', async () => {
+    await fillWithData();
+    const warned = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    // Stands in for a full disk or a file another program is reading.
+    const unshrinkable = {
+      prepare: (sql: string) => db.prepare(sql),
+      exec: (sql: string) => {
+        if (sql === 'VACUUM') throw new Error('database or disk is full');
+        db.exec(sql);
+      },
+    } as unknown as DatabaseSync;
+
+    expect(clearAllData(unshrinkable)).toEqual({ discussions: 6, reports: 1 });
+    expect(rowCounts()).toEqual([0, 0, 0, 0, 0]);
+    expect(warned).toHaveBeenCalled();
+    warned.mockRestore();
   });
 
   it('does nothing harmful on an empty database', () => {

@@ -75,7 +75,7 @@ Everything runs on your machine. The only network traffic is downloading the mod
 
 In testing, the RAG report covered that week's actual threads and cited them, while the baseline described plausible topics that the community had not discussed. Your results will differ in detail: the community changes daily, and the model's output varies slightly between runs even with a fixed seed.
 
-To start over, click **Clear data** and type `DELETE` to confirm. It removes the stored discussions, embeddings, retrieval counts, and reports.
+To start over, click **Clear data** and type `DELETE` to confirm. It removes every stored discussion, embedding, retrieval count, and report, including data from any other community the app was pointed at before.
 
 The same actions are available through the API:
 
@@ -157,6 +157,7 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 | "No discussions from the past seven days are stored" | Refresh the feed first. Data older than seven days is outside the report period. |
 | The page says the API is not responding | The app was stopped in the terminal. Run `npm start` again. |
 | You want to start over | Click **Clear data** on the page and type `DELETE`, or stop the app and delete the `data` folder. |
+| The API will not start, or the page reports a database problem such as "created by a different version" | Stop the app and delete the `data` folder, then run `npm start` again. The database is rebuilt empty. |
 | No colors in the terminal | Colors are off when output is not a terminal or when the `NO_COLOR` environment variable is set. |
 
 ## Limitations

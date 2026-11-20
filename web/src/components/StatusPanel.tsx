@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { HealthResponse } from '../../../src/shared/health';
 import type { ReportJobStatus, ReportRun } from '../../../src/shared/reports';
-import { describeIngest, describeStoredData, formatDateTime } from '../format';
+import { describeCleared, describeIngest, describeStoredData, formatDateTime } from '../format';
 import type { ClearState, FeedState } from '../useDashboard';
 import { ClearDataForm } from './ClearDataForm';
 import { Button, Disclosure, ExternalLink, Message, Panel } from './ui';
@@ -15,6 +15,8 @@ interface StatusPanelProps {
   onRefreshFeed: () => void;
   onGenerateReports: () => void;
   onClearData: (confirmation: string) => void;
+  /** Removes the message left by the last clear attempt. */
+  onDismissClearResult: () => void;
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -64,12 +66,7 @@ function SystemDetails({ health }: { health: HealthResponse }) {
 function ActivityMessages({ job, feed, clear }: Pick<StatusPanelProps, 'job' | 'feed' | 'clear'>) {
   return (
     <>
-      {clear.phase === 'done' && (
-        <Message tone="ok">
-          Stored data cleared: {clear.summary.discussions} posts and comments and {clear.summary.reports} report runs
-          were deleted.
-        </Message>
-      )}
+      {clear.phase === 'done' && <Message tone="ok">{describeCleared(clear.summary)}</Message>}
       {clear.phase === 'error' && <Message tone="problem">Clearing data failed: {clear.message}</Message>}
       {feed.phase === 'running' && (
         <Message tone="busy">
@@ -97,20 +94,30 @@ function ActivityMessages({ job, feed, clear }: Pick<StatusPanelProps, 'job' | '
 }
 
 export function StatusPanel(props: StatusPanelProps) {
-  const { health, run, job, feed, clear, onRefreshFeed, onGenerateReports, onClearData } = props;
+  const { health, run, job, feed, clear, onRefreshFeed, onGenerateReports, onClearData, onDismissClearResult } = props;
   const { source, data } = health;
   const hasData = data !== null && data.posts + data.comments > 0;
   const refreshing = feed.phase === 'running';
   const generating = job?.state === 'running';
   const clearing = clear.phase === 'running';
-  const busy = refreshing || generating || clearing;
-  const stored = (data?.posts ?? 0) + (data?.comments ?? 0);
 
   // The confirmation form closes by itself once the data is gone.
   const [confirmingClear, setConfirmingClear] = useState(false);
   useEffect(() => {
     if (clear.phase === 'done') setConfirmingClear(false);
   }, [clear.phase]);
+
+  // One thing at a time: while the delete confirmation is open, nothing else can
+  // be started, so the data cannot change between asking and deleting.
+  const busy = refreshing || generating || clearing || confirmingClear;
+  const openClearForm = (): void => {
+    onDismissClearResult();
+    setConfirmingClear(true);
+  };
+  const closeClearForm = (): void => {
+    onDismissClearResult();
+    setConfirmingClear(false);
+  };
 
   return (
     <Panel aria-label="Status">
@@ -138,24 +145,14 @@ export function StatusPanel(props: StatusPanelProps) {
         >
           {generating ? 'Generating…' : 'Generate reports'}
         </Button>
-        <Button
-          danger
-          className="sm:ml-auto"
-          onClick={() => setConfirmingClear(true)}
-          disabled={busy || confirmingClear || (stored === 0 && run === null)}
-        >
+        {/* Always available when idle: the database can hold data this page does not count,
+            such as another community's, or data it could not read. */}
+        <Button danger className="sm:ml-auto" onClick={openClearForm} disabled={busy}>
           Clear data
         </Button>
       </div>
 
-      {confirmingClear && (
-        <ClearDataForm
-          whatWillBeDeleted={`${stored} posts and comments and every report`}
-          deleting={clearing}
-          onConfirm={onClearData}
-          onCancel={() => setConfirmingClear(false)}
-        />
-      )}
+      {confirmingClear && <ClearDataForm deleting={clearing} onConfirm={onClearData} onCancel={closeClearForm} />}
 
       <ActivityMessages job={job} feed={feed} clear={clear} />
       <SystemDetails health={health} />

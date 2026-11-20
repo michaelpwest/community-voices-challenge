@@ -218,3 +218,5 @@ Chosen while building Milestone 6; confirm or change.
 - The app can no longer be driven from the terminal alone, except through the API with a tool such as curl.
 - Opening the browser uses each system's own command (`start`, `open`, `xdg-open`). It is verified on Windows; macOS and Linux are covered by unit tests only.
 - Clearing data now needs a working API. If the database itself is damaged, the fallback is to stop the app and delete the `data` folder.
+- Because the file is kept, it records a schema version. A file made by a version with different tables is refused with that same instruction instead of being used with the wrong shape.
+- Clear data removes every community's rows, so its button is always available when the app is idle, even if the page counts nothing for the configured community.

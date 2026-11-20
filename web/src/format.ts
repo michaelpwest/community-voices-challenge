@@ -1,4 +1,4 @@
-import type { DataStatus, IngestSummary } from '../../src/shared/discussions';
+import type { ClearSummary, DataStatus, IngestSummary } from '../../src/shared/discussions';
 import type { EvidencePassage, EvidenceSelection } from '../../src/shared/reports';
 
 const LOCALE = 'en-US';
@@ -41,6 +41,20 @@ export function formatPercent(share: number): string {
 export function formatTimes(count: number): string {
   if (count === 0) return 'never';
   return count === 1 ? 'once' : `${count} times`;
+}
+
+/** A count with its noun in the right form, e.g. "1 report run" or "2 report runs". */
+export function formatCount(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+/** What "Clear data" removed, as one sentence. */
+export function describeCleared(summary: ClearSummary): string {
+  if (summary.discussions === 0 && summary.reports === 0) return 'There was no stored data to clear.';
+  const discussions = formatCount(summary.discussions, 'post or comment', 'posts and comments');
+  const reports = formatCount(summary.reports, 'report run');
+  const verb = summary.discussions + summary.reports === 1 ? 'was' : 'were';
+  return `Stored data cleared: ${discussions} and ${reports} ${verb} deleted.`;
 }
 
 /** Why a passage was included in the evidence, in plain words. */

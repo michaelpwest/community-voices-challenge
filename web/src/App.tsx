@@ -105,6 +105,7 @@ export function App() {
             onRefreshFeed={dashboard.refreshFeed}
             onGenerateReports={dashboard.generateReports}
             onClearData={dashboard.clearData}
+            onDismissClearResult={dashboard.dismissClearResult}
           />
           {run ? (
             <ReportView run={run} feedRefreshedAt={health.data?.lastIngestion?.finishedAt ?? null} />

@@ -3,8 +3,6 @@ import { CLEAR_CONFIRMATION } from '../../../src/shared/discussions';
 import { Button } from './ui';
 
 interface ClearDataFormProps {
-  /** What will be deleted, in words, e.g. "390 posts and comments and 2 reports". */
-  whatWillBeDeleted: string;
   deleting: boolean;
   onConfirm: (confirmation: string) => void;
   onCancel: () => void;
@@ -14,7 +12,7 @@ interface ClearDataFormProps {
  * Asks the user to type the confirmation word before anything is deleted.
  * The delete button stays disabled until the word matches exactly.
  */
-export function ClearDataForm({ whatWillBeDeleted, deleting, onConfirm, onCancel }: ClearDataFormProps) {
+export function ClearDataForm({ deleting, onConfirm, onCancel }: ClearDataFormProps) {
   const [typed, setTyped] = useState('');
   const confirmed = typed === CLEAR_CONFIRMATION;
 
@@ -26,8 +24,9 @@ export function ClearDataForm({ whatWillBeDeleted, deleting, onConfirm, onCancel
   return (
     <form onSubmit={submit} aria-label="Confirm clearing data" className="mt-3 rounded-md border border-problem p-3">
       <p>
-        <strong>Delete all stored data?</strong> This removes {whatWillBeDeleted}, along with the embeddings and
-        retrieval counts. It cannot be undone, but you can refresh the feed and generate reports again.
+        <strong>Delete all stored data?</strong> This removes every stored post and comment, their embeddings and
+        retrieval counts, and every report, for every community this app has read. It cannot be undone, but you can
+        refresh the feed and generate reports again.
       </p>
       <label className="mt-3 block text-sm">
         Type {CLEAR_CONFIRMATION} to confirm
