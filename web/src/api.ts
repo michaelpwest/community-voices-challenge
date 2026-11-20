@@ -62,7 +62,7 @@ export const clearData = (confirmation: string): Promise<ClearSummary> =>
     body: JSON.stringify({ confirm: confirmation }),
   });
 
-export const fetchEmbeddingMap =(): Promise<EmbeddingMap> => request('/api/embeddings/map');
+export const fetchEmbeddingMap = (): Promise<EmbeddingMap> => request('/api/embeddings/map');
 
 export const fetchRetrievalStats = (): Promise<RetrievalStats> => request('/api/retrieval/stats');
 

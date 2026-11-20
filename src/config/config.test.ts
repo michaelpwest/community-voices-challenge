@@ -58,6 +58,24 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ OPEN_BROWSER: 'maybe' }, BASE_DIR)).toThrow(/OPEN_BROWSER: must be true or false/);
   });
 
+  it.each([
+    ['False', false],
+    ['FALSE', false],
+    ['0', false],
+    ['no', false],
+    [' off ', false],
+    ['True', true],
+    ['1', true],
+    ['YES', true],
+    ['on', true],
+  ])('reads OPEN_BROWSER=%s as %s', (value, expected) => {
+    expect(loadConfig({ OPEN_BROWSER: value }, BASE_DIR).openBrowser).toBe(expected);
+  });
+
+  it('uses the default when OPEN_BROWSER is left blank', () => {
+    expect(loadConfig({ OPEN_BROWSER: '' }, BASE_DIR).openBrowser).toBe(true);
+  });
+
   it('rejects identical web and API ports', () => {
     expect(() => loadConfig({ WEB_PORT: '3001' }, BASE_DIR)).toThrow(/must differ/);
   });

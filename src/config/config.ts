@@ -46,13 +46,20 @@ const httpUrl = z
   .refine(isHttpUrl, 'must be an http:// or https:// URL')
   .transform((value) => value.replace(/\/+$/, ''));
 
+const ON_WORDS = ['true', '1', 'yes', 'on'];
+const OFF_WORDS = ['false', '0', 'no', 'off'];
+
+/** An on/off setting, written in any of the usual ways and in any letter case. */
+const onOff = z
+  .string()
+  .transform((value) => value.trim().toLowerCase())
+  .refine((value) => ON_WORDS.includes(value) || OFF_WORDS.includes(value), 'must be true or false')
+  .transform((value) => ON_WORDS.includes(value));
+
 const envSchema = z.object({
   WEB_PORT: port.default(3000),
   API_PORT: port.default(3001),
-  OPEN_BROWSER: z
-    .enum(['true', 'false'], { error: 'must be true or false' })
-    .default('true')
-    .transform((value) => value === 'true'),
+  OPEN_BROWSER: onOff.default(true),
   OLLAMA_URL: httpUrl.default('http://localhost:11434'),
   OLLAMA_MODEL: name.default('llama3.1:8b'),
   OLLAMA_EMBED_MODEL: name.default('nomic-embed-text'),
