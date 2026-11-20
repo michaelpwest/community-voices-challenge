@@ -8,9 +8,15 @@ export interface BrowserCommand {
 export interface OpenBrowserOptions {
   spawnFn?: typeof spawn;
   platform?: NodeJS.Platform;
-  /** How long to wait for the open command to report a failure before assuming it worked. */
-  settleMs?: number;
 }
+
+/**
+ * What the open command reported when it finished:
+ * - `opened`: it handed the address to a browser.
+ * - `failed`: it could not (no such command, no desktop, no default browser).
+ * - `unclear`: it ended in a way that says nothing either way.
+ */
+export type BrowserOpenResult = 'opened' | 'failed' | 'unclear';
 
 /** The operating system's own "open this address" command. */
 export function browserCommand(url: string, platform: NodeJS.Platform = process.platform): BrowserCommand {
@@ -20,33 +26,43 @@ export function browserCommand(url: string, platform: NodeJS.Platform = process.
   return { command: 'xdg-open', args: [url] };
 }
 
+/** xdg-open's own codes for "a required tool was not found" and "the action failed". */
+const XDG_OPEN_FAILURES = [3, 4];
+
 /**
- * Opens the address in the user's default browser. Resolves false when that
- * did not work, so the caller can tell the user to open it themselves.
- *
- * The open command normally exits within moments: with code 0 once it has
- * handed the address to a browser, or with an error code when it cannot (no
- * desktop, no default browser). Some systems instead keep the command running
- * for as long as the browser is open, so one that is still running after
- * `settleMs` is taken to have worked.
+ * Reads the open command's exit code. On Linux, xdg-open sometimes runs the
+ * browser itself and passes on the browser's exit code, so only its own
+ * failure codes count as a failure there.
  */
-export function openBrowser(url: string, options: OpenBrowserOptions = {}): Promise<boolean> {
-  const { spawnFn = spawn, platform = process.platform, settleMs = 2000 } = options;
+export function interpretExit(code: number | null, platform: NodeJS.Platform): BrowserOpenResult {
+  if (code === 0) return 'opened';
+  if (platform === 'win32' || platform === 'darwin') return 'failed';
+  return code !== null && XDG_OPEN_FAILURES.includes(code) ? 'failed' : 'unclear';
+}
+
+/**
+ * Asks the operating system to open the address in the default browser, and
+ * resolves once the open command has finished. Never rejects.
+ *
+ * Callers should not wait on this before carrying on: the command usually
+ * finishes in moments, but on some systems it runs for as long as the browser
+ * stays open, and on others it takes a long time to give up. In those cases
+ * the result arrives late or not at all.
+ */
+export function openBrowser(url: string, options: OpenBrowserOptions = {}): Promise<BrowserOpenResult> {
+  const { spawnFn = spawn, platform = process.platform } = options;
   const { command, args } = browserCommand(url, platform);
   return new Promise((resolve) => {
     try {
       const child = spawnFn(command, args, { stdio: 'ignore', detached: true, windowsHide: true });
-      const stillRunning = setTimeout(() => finish(true), settleMs);
-      const finish = (opened: boolean): void => {
-        clearTimeout(stillRunning);
-        // The browser keeps running on its own; it is not this launcher's process to wait for or stop.
-        child.unref();
-        resolve(opened);
-      };
-      child.once('error', () => finish(false));
-      child.once('exit', (code) => finish(code === 0));
+      // Both listeners stay attached for the life of the child, so a late event is
+      // always handled; resolving a second time has no effect.
+      child.once('error', () => resolve('failed'));
+      child.once('exit', (code) => resolve(interpretExit(code, platform)));
+      // The browser is not this launcher's process to wait for or stop.
+      child.unref();
     } catch {
-      resolve(false);
+      resolve('failed');
     }
   });
 }

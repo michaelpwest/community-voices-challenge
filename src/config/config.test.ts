@@ -55,7 +55,9 @@ describe('loadConfig', () => {
   it('opens the browser on start unless told not to', () => {
     expect(loadConfig({}, BASE_DIR).openBrowser).toBe(true);
     expect(loadConfig({ OPEN_BROWSER: 'false' }, BASE_DIR).openBrowser).toBe(false);
-    expect(() => loadConfig({ OPEN_BROWSER: 'maybe' }, BASE_DIR)).toThrow(/OPEN_BROWSER: must be true or false/);
+    expect(() => loadConfig({ OPEN_BROWSER: 'disabled' }, BASE_DIR)).toThrow(
+      'OPEN_BROWSER: must be true or false (yes/no, on/off, and 1/0 also work)',
+    );
   });
 
   it.each([

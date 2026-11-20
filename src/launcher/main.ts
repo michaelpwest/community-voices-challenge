@@ -147,15 +147,24 @@ function watchForStopRequests(): void {
   });
 }
 
-/** Opens the web UI in the browser when a person is at the terminal and has not turned this off. */
-async function showWebUi(webUrl: string, config: AppConfig, interactive: boolean): Promise<void> {
+/**
+ * Shows where the web UI is, and opens it in the browser when a person is at
+ * the terminal and has not turned that off. Startup does not wait for the
+ * browser: the address is printed straight away, and a warning follows only
+ * if the system reports that it could not open one.
+ */
+function showWebUi(webUrl: string, config: AppConfig, interactive: boolean): void {
   if (!interactive || !config.openBrowser) {
     say(`Open ${paint.accent(webUrl)} in your browser.`);
-  } else if (await openBrowser(webUrl)) {
-    say(`Opened ${paint.accent(webUrl)} in your browser.`);
-  } else {
-    say(paint.warn(`Could not open a browser automatically. Open ${webUrl} yourself.`));
+    return;
   }
+  say(`Web UI: ${paint.accent(webUrl)}`);
+  say('Opening it in your browser. If nothing appears, go to that address yourself.');
+  void openBrowser(webUrl).then((result) => {
+    if (result === 'failed' && !shuttingDown) {
+      say(paint.warn(`Could not open a browser automatically. Open ${webUrl} yourself.`));
+    }
+  });
 }
 
 async function main(): Promise<void> {
@@ -178,7 +187,7 @@ async function main(): Promise<void> {
   await startAndWait('web', `http://${LOOPBACK_HOST}:${config.webPort}/`, config);
 
   say('');
-  await showWebUi(`http://localhost:${config.webPort}`, config, interactive);
+  showWebUi(`http://localhost:${config.webPort}`, config, interactive);
   say(paint.dim(`API: http://localhost:${config.apiPort}/api/health`));
   say('\nRunning. Press Ctrl+C to stop.');
 }

@@ -122,7 +122,7 @@ The defaults work without any setup. To change them, copy `.env.example` to `.en
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `WEB_PORT`, `API_PORT` | `3000`, `3001` | Local ports |
-| `OPEN_BROWSER` | `true` | Whether `npm start` opens the web UI in your browser |
+| `OPEN_BROWSER` | `true` | Whether `npm start` opens the web UI in your browser. Accepts `true`/`false`, `yes`/`no`, `on`/`off`, or `1`/`0`. |
 | `OLLAMA_URL` | `http://localhost:11434` | Where Ollama is running, including another machine |
 | `OLLAMA_MODEL` | `llama3.1:8b` | Model that writes both reports |
 | `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Model that creates embeddings |

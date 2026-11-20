@@ -53,7 +53,10 @@ const OFF_WORDS = ['false', '0', 'no', 'off'];
 const onOff = z
   .string()
   .transform((value) => value.trim().toLowerCase())
-  .refine((value) => ON_WORDS.includes(value) || OFF_WORDS.includes(value), 'must be true or false')
+  .refine(
+    (value) => ON_WORDS.includes(value) || OFF_WORDS.includes(value),
+    'must be true or false (yes/no, on/off, and 1/0 also work)',
+  )
   .transform((value) => ON_WORDS.includes(value));
 
 const envSchema = z.object({
